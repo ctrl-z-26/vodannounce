@@ -8,6 +8,7 @@ node_modules/
 !.env.example
 *.pem
 *.key
+vodannounce-firebase-adminsdk.json
 
 # Build & Distributable Outputs
 /web/dist
