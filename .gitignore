@@ -20,6 +20,9 @@ vodannounce-firebase-adminsdk.json
 /backend/build
 /backend/target/
 
+# Testing / Coverage
+coverage/
+
 # Mobile Native Build Folders & SDK Logs
 /mobile/android/.gradle
 /mobile/android/app/build
@@ -40,3 +43,9 @@ Thumbs.db
 *.log
 npm-debug.log*
 yarn-debug.log*
+
+# Optional ESLint cache
+.eslintcache
+
+# Nx
+.nx/
