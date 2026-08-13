@@ -7,7 +7,8 @@
     "type": "module",
     "main": "dist/index.js",
     "scripts": {
-        "dev": "tsx --watch src/index.ts",
+        "dev": "node -r dotenv/config --import tsx/esm src/index.ts",
+        "dev:watch": "node -r dotenv/config --import tsx/esm --watch src/index.ts",
         "build": "tsc",
         "start": "node dist/index.js",
         "test": "vitest run",
