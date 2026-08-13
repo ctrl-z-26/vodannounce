@@ -2,7 +2,7 @@
   // Visit https://aka.ms to read more about this file
   "compilerOptions": {
     "paths": {
-      "@shared/*": ["./shared/*"]
+      "@shared/*": ["./src/shared/*"]
     },
     // File Layout
     "rootDir": "./src",
