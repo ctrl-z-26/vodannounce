@@ -1,9 +1,9 @@
-import { initializeApp, cert, type ServiceAccount } from 'firebase-admin/app';
+import { env } from '@shared/config/env.js';
+import { initializeApp, cert } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
-import serviceAccount from './vodannounce-firebase-adminsdk.json' with { type: 'json' };
 
 const app = initializeApp({
-    credential: cert(serviceAccount as ServiceAccount),
+    credential: cert(env.FCM_SERVICE_ACCOUNT_JSON),
 });
 
 export const fcm = getMessaging(app);

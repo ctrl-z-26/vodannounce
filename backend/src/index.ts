@@ -1,7 +1,8 @@
+import { env } from '@shared/config/env.js';
 import express, { type Request, type Response } from 'express';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = env.PORT;
 
 app.use(express.json());
 
