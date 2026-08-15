@@ -2,6 +2,7 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
     test: {
+        include: ['src/**/*.test.ts'],
         env: {
             PORT: '3000',
             SUPABASE_URL: 'https://supabase.co',
