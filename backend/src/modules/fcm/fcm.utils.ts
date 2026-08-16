@@ -55,3 +55,33 @@ export function collectPrunableTokens(
         );
     });
 }
+
+/**
+ * Returns the user ids that had at least one successful message delivery among
+ * the given responses.
+ *
+ * @remarks
+ * Responses are zipped with tokens by index (FCM returns responses in the
+ * order the messages were sent). A user is considered delivered if any of
+ * their tokens in `tokens` succeeded; missing responses are treated as
+ * failures. Used to derive `PushResult.failedUserIds` by the caller.
+ *
+ * @param responses - The `BatchResponse.responses` list from `sendEach`.
+ * @param tokens - The token list sent to `sendEach`, same order as `responses`.
+ * @param userIdByToken - Map from token to the owning `profiles.id`.
+ * @returns The unique user ids with at least one successful delivery.
+ */
+export function collectSucceededUserIds(
+    responses: readonly SendResponse[],
+    tokens: readonly string[],
+    userIdByToken: ReadonlyMap<string, string>,
+): string[] {
+    const succeeded = new Set<string>();
+    for (const [index, token] of tokens.entries()) {
+        if (responses[index]?.success) {
+            const userId = userIdByToken.get(token);
+            if (userId) succeeded.add(userId);
+        }
+    }
+    return [...succeeded];
+}
