@@ -1,7 +1,11 @@
 import { fcm } from './fcm.config.js';
 import { supabase } from '@shared/supabase/supabase.js';
-import { chunkTokens, collectPrunableTokens } from './fcm.utils.js';
-import type { DevicePlatform } from './fcm.types.js';
+import {
+    chunkTokens,
+    collectPrunableTokens,
+    collectSucceededUserIds,
+} from './fcm.utils.js';
+import type { DevicePlatform, PushResult } from './fcm.types.js';
 import type { Message } from 'firebase-admin/messaging';
 
 export async function saveDeviceToken(
@@ -35,6 +39,8 @@ export async function saveDeviceToken(
  * @param title - The notification title.
  * @param body - The notification body.
  * @param data - Optional key/value payload (e.g. `campaign_id`) for tap handling.
+ * @returns `{ failedUserIds }` — the users whose tokens all failed to send (see
+ * {@link PushResult}). Users with no stored tokens are absent.
  * @throws If the device-token query fails or every message in the batch failed
  * to send (e.g. all tokens dead or a systemic FCM error), letting the caller
  * log the campaign as `FAILED`.
@@ -44,16 +50,19 @@ export async function pushToUsers(
     title: string,
     body: string,
     data?: Record<string, string>,
-): Promise<void> {
+): Promise<PushResult> {
     const { data: rows, error } = await supabase
         .from('device_tokens')
-        .select('token, platform')
+        .select('token, platform, user_id')
         .in('user_id', userIds);
     if (error) throw new Error(`Failed to fetch device tokens: ${error.message}`);
-    if (!rows || rows.length === 0) return;
+    if (!rows || rows.length === 0) return { failedUserIds: [] };
 
     const tokens = rows.map((row) => row.token);
+    const userIdByToken = new Map(rows.map((row) => [row.token, row.user_id]));
     const platformByToken = new Map(rows.map((row) => [row.token, row.platform]));
+    const attemptedUserIds = new Set(rows.map((row) => row.user_id));
+    const succeededUserIds = new Set<string>();
     let prunable: string[] = [];
     let totalFailures = 0;
 
@@ -70,6 +79,13 @@ export async function pushToUsers(
         const batch = await fcm.sendEach(messages);
         totalFailures += batch.failureCount;
         prunable = prunable.concat(collectPrunableTokens(batch.responses, chunk));
+        for (const userId of collectSucceededUserIds(
+            batch.responses,
+            chunk,
+            userIdByToken,
+        )) {
+            succeededUserIds.add(userId);
+        }
     }
 
     if (totalFailures === tokens.length) {
@@ -79,6 +95,11 @@ export async function pushToUsers(
     if (prunable.length > 0) {
         await supabase.from('device_tokens').delete().in('token', prunable);
     }
+
+    const failedUserIds = [...attemptedUserIds].filter(
+        (userId) => !succeededUserIds.has(userId),
+    );
+    return { failedUserIds };
 }
 
 /**
@@ -88,12 +109,14 @@ export async function pushToUsers(
  * @param title - The notification title.
  * @param body - The notification body.
  * @param data - Optional key/value payload (e.g. `campaign_id`) for tap handling.
+ * @returns `{ failedUserIds }` — `[userId]` when none of the user's tokens
+ * were accepted, `[]` otherwise.
  */
 export async function pushToUser(
     userId: string,
     title: string,
     body: string,
     data?: Record<string, string>,
-): Promise<void> {
-    await pushToUsers([userId], title, body, data);
+): Promise<PushResult> {
+    return pushToUsers([userId], title, body, data);
 }

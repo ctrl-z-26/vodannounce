@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { chunkTokens, collectPrunableTokens } from './fcm.utils.js';
+import {
+    chunkTokens,
+    collectPrunableTokens,
+    collectSucceededUserIds,
+} from './fcm.utils.js';
 import type { FirebaseError } from 'firebase-admin/app';
 import type { SendResponse } from 'firebase-admin/messaging';
 
@@ -86,5 +90,50 @@ describe('collectPrunableTokens', () => {
             fail('messaging/registration-token-not-registered'),
         ];
         expect(collectPrunableTokens(responses, tokens)).toEqual(['a', 'c']);
+    });
+});
+
+describe('collectSucceededUserIds', () => {
+    const userIdByToken = new Map([
+        ['a', 'u1'],
+        ['b', 'u2'],
+        ['c', 'u1'],
+    ]);
+
+    it('returns every user when all sends succeed', () => {
+        const tokens = ['a', 'b'];
+        const responses = [ok(), ok()];
+        expect(collectSucceededUserIds(responses, tokens, userIdByToken).sort()).toEqual([
+            'u1',
+            'u2',
+        ]);
+    });
+
+    it('returns no users when all sends fail', () => {
+        const tokens = ['a', 'b'];
+        const responses = [fail('messaging/unavailable'), fail('messaging/internal')];
+        expect(collectSucceededUserIds(responses, tokens, userIdByToken)).toEqual([]);
+    });
+
+    it('returns only users with at least one success', () => {
+        const tokens = ['a', 'b'];
+        const responses = [ok(), fail('messaging/registration-token-not-registered')];
+        expect(collectSucceededUserIds(responses, tokens, userIdByToken)).toEqual(['u1']);
+    });
+
+    it('reports a multi-token user once when any token succeeds', () => {
+        const tokens = ['a', 'c'];
+        const responses = [ok(), fail('messaging/unavailable')];
+        expect(collectSucceededUserIds(responses, tokens, userIdByToken)).toEqual(['u1']);
+    });
+
+    it('treats a missing response as a failure', () => {
+        const tokens = ['a', 'b'];
+        const responses = [ok()];
+        expect(collectSucceededUserIds(responses, tokens, userIdByToken)).toEqual(['u1']);
+    });
+
+    it('ignores successes for tokens not in the map', () => {
+        expect(collectSucceededUserIds([ok()], ['zzz'], userIdByToken)).toEqual([]);
     });
 });
