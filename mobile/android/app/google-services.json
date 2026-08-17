@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "742737874958",
+    "project_id": "vodannounce",
+    "storage_bucket": "vodannounce.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:742737874958:android:e22405db00fdb91513ac5f",
+        "android_client_info": {
+          "package_name": "com.vois.vodannounce"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCQIqHHUtzICMLRIucWRf74pT7o-uAxGLI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
