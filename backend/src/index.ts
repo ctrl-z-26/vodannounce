@@ -1,8 +1,15 @@
 import { env } from '@shared/config/env.js';
-import express, { type Request, type Response } from 'express';
+import express, {
+    type Request,
+    type Response
+} from 'express';
+
+import cors from 'cors';
 import { fcmRoutes } from './modules/fcm/index.js';
 
+
 const app = express();
+app.use(cors());
 const PORT = env.PORT;
 
 app.use(express.json());
