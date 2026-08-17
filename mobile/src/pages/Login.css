@@ -1,0 +1,128 @@
+.login-content {
+  --background: #1a1a1a;
+}
+
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 24px 24px;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.login-brand {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.login-logo-ring {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 8px solid #e60000;
+  margin: 0 auto 16px;
+}
+
+.login-title {
+  color: #fff;
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.login-subtitle {
+  color: #8a9bb0;
+  font-size: 12px;
+  letter-spacing: 1px;
+  margin: 0;
+}
+
+.login-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 8px 20px 20px;
+  width: 100%;
+}
+
+.login-segment {
+  margin: 8px 0 20px;
+  --background: transparent;
+}
+
+.login-segment ion-segment-button {
+  --color: #8a8a8a;
+  --color-checked: #e60000;
+  --indicator-color: #e60000;
+  font-weight: 600;
+  text-transform: none;
+  font-size: 13px;
+  min-height: 40px;
+}
+
+.login-field-label {
+  display: block;
+  color: #4a4a4a;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 16px 0 6px;
+}
+
+.login-input {
+  --background: #f5f5f5;
+  --color: #1a1a1a;
+  --placeholder-color: #9a9a9a;
+  --placeholder-opacity: 1;
+  --padding-start: 12px;
+  --padding-end: 12px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.login-password-wrapper {
+  position: relative;
+}
+
+.login-password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9a9a9a;
+  cursor: pointer;
+  font-size: 20px;
+  z-index: 2;
+}
+
+.login-signin-btn {
+  margin-top: 24px;
+  --background: #e60000;
+  --background-hover: #e6000098;
+  font-weight: 600;
+}
+
+.login-sso-hint {
+  color: #6a6a6a;
+  font-size: 13px;
+  text-align: center;
+  margin: 16px 0 20px;
+}
+
+.login-sso-btn {
+  --border-color: #ddd;
+  --color: #1a1a1a;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.login-footer {
+  color: #6a7a8a;
+  font-size: 11px;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.login-footer a {
+  color: #e60000;
+  text-decoration: none;
+}
