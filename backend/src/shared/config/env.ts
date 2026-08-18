@@ -23,6 +23,7 @@ export const envSchema = z.object({
                 return z.NEVER;
             }
         }),
+    API_KEY: z.string().min(1, 'API key is required'),
 });
 
 const envParse = envSchema.safeParse(process.env);
