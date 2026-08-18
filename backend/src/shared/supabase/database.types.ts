@@ -176,6 +176,7 @@ export type Database = {
       }
       announcements: {
         Row: {
+          channels: Database["public"]["Enums"]["announcement_channel"][]
           created_at: string
           created_by: string | null
           email_body: string | null
@@ -187,10 +188,14 @@ export type Database = {
           scheduled_at: string | null
           sent_at: string | null
           status: Database["public"]["Enums"]["announcement_status"]
+          targeting: Json
+          teams_channel_ids: string[] | null
+          teams_message: string | null
           title: string
           updated_at: string
         }
         Insert: {
+          channels?: Database["public"]["Enums"]["announcement_channel"][]
           created_at?: string
           created_by?: string | null
           email_body?: string | null
@@ -202,10 +207,14 @@ export type Database = {
           scheduled_at?: string | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["announcement_status"]
+          targeting?: Json
+          teams_channel_ids?: string[] | null
+          teams_message?: string | null
           title: string
           updated_at?: string
         }
         Update: {
+          channels?: Database["public"]["Enums"]["announcement_channel"][]
           created_at?: string
           created_by?: string | null
           email_body?: string | null
@@ -217,6 +226,9 @@ export type Database = {
           scheduled_at?: string | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["announcement_status"]
+          targeting?: Json
+          teams_channel_ids?: string[] | null
+          teams_message?: string | null
           title?: string
           updated_at?: string
         }
@@ -229,24 +241,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      departments: {
-        Row: {
-          created_at: string
-          id: string
-          name: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          name: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          name?: string
-        }
-        Relationships: []
       }
       device_tokens: {
         Row: {
@@ -283,20 +277,53 @@ export type Database = {
           },
         ]
       }
+      group_locations: {
+        Row: {
+          group_id: string
+          location_id: string
+        }
+        Insert: {
+          group_id: string
+          location_id: string
+        }
+        Update: {
+          group_id?: string
+          location_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_locations_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_locations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_members: {
         Row: {
           created_at: string
           group_id: string
+          is_lead: boolean
           user_id: string
         }
         Insert: {
           created_at?: string
           group_id: string
+          is_lead?: boolean
           user_id: string
         }
         Update: {
           created_at?: string
           group_id?: string
+          is_lead?: boolean
           user_id?: string
         }
         Relationships: [
@@ -337,10 +364,27 @@ export type Database = {
         }
         Relationships: []
       }
+      locations: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
-          department_id: string | null
           email: string | null
           full_name: string | null
           id: string
@@ -349,7 +393,6 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          department_id?: string | null
           email?: string | null
           full_name?: string | null
           id: string
@@ -358,22 +401,13 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          department_id?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
           role?: Database["public"]["Enums"]["profile_role"]
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
@@ -452,6 +486,7 @@ export type Database = {
       }
     }
     Enums: {
+      announcement_channel: "email" | "teams" | "mobile_push"
       announcement_log_action:
         | "created"
         | "edited"
@@ -592,6 +627,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      announcement_channel: ["email", "teams", "mobile_push"],
       announcement_log_action: [
         "created",
         "edited",
