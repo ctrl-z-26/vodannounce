@@ -16,6 +16,7 @@
         "update-types": "npx supabase gen types typescript --project-id uyyoxyrhunmwojggonko > src/shared/database.types.ts"
     },
     "dependencies": {
+        "@google/genai": "^2.17.1",
         "@supabase/supabase-js": "^2.112.3",
         "cors": "^2.8.6",
         "dotenv": "^17.4.2",
