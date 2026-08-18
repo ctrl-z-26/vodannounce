@@ -19,7 +19,7 @@ export const campaignAnalysisSchema = z.object({
     channels: z.array(z.enum(['email', 'teams', 'mobile_push'])).min(1),
     email_subject: z.string().min(1),
     email_body: z.string().min(1),
-    notification_text: z.string().max(150),
+    notification_text: z.string().max(500),
     teams_message: z.string().nullable(),
     targets: z.array(z.array(targetSchema)).min(1),
 });

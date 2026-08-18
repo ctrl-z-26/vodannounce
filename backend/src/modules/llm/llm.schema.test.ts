@@ -25,7 +25,9 @@ describe('campaignAnalysisSchema', () => {
 
     it('rejects an unknown target type', () => {
         const analysis = validAnalysis();
-        analysis.targets = [[{ type: 'department', name: 'HR' }]] as unknown as CampaignAnalysis['targets'];
+        analysis.targets = [
+            [{ type: 'department', name: 'HR' }],
+        ] as unknown as CampaignAnalysis['targets'];
         expect(() => campaignAnalysisSchema.parse(analysis)).toThrow();
     });
 
@@ -41,9 +43,9 @@ describe('campaignAnalysisSchema', () => {
         expect(() => campaignAnalysisSchema.parse(analysis)).toThrow();
     });
 
-    it('rejects a notification text over 150 chars', () => {
+    it('rejects a notification text over 500 chars', () => {
         const analysis = validAnalysis();
-        analysis.notification_text = 'x'.repeat(151);
+        analysis.notification_text = 'x'.repeat(501);
         expect(() => campaignAnalysisSchema.parse(analysis)).toThrow();
     });
 
