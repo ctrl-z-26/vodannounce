@@ -13,6 +13,7 @@ import { App as CapacitorApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 
 import Home from './pages/Home';
+import Login from './pages/Login';
 import { supabase } from './lib/supabase';
 
 /* Core CSS required for Ionic components to work properly */
@@ -148,12 +149,16 @@ const App: React.FC = () => {
 
         <IonRouterOutlet>
 
+          <Route exact path="/login">
+            <Login />
+          </Route>
+
           <Route exact path="/home">
             <Home />
           </Route>
 
           <Route exact path="/">
-            <Redirect to="/home" />
+            <Redirect to="/login" />
           </Route>
 
         </IonRouterOutlet>
