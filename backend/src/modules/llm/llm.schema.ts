@@ -1,7 +1,11 @@
 import { z } from 'zod';
+import type { Target } from '@root-shared/types/campaign.js';
 
-/** A single auditable target: a named group or a physical location. */
-export const targetSchema = z.object({
+/**
+ * Zod validation for a single auditable target, bound to the shared
+ * `Target` type so backend and frontend always agree on the target shape.
+ */
+export const targetSchema: z.ZodType<Target> = z.object({
     type: z.enum(['group', 'location']),
     name: z.string().min(1),
 });

@@ -2,10 +2,13 @@
   // Visit https://aka.ms to read more about this file
   "compilerOptions": {
     "paths": {
-      "@shared/*": ["./src/shared/*"]
+      "@shared/*": ["./src/shared/*"],
+      "@root-shared/*": ["../shared/*"]
     },
     // File Layout
-    "rootDir": "./src",
+    // Compile from the repo root so the root /shared types are in scope;
+    // emitted output lands under ./dist/backend and ./dist/shared.
+    "rootDir": "..",
     "outDir": "./dist",
 
     // Environment Settings
