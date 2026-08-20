@@ -3,7 +3,6 @@ import {
   IonContent,
   IonHeader,
   IonPage,
-  IonSpinner,
   IonTitle,
   IonToolbar,
 } from '@ionic/react';
@@ -17,39 +16,422 @@ import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
 import {
-  signInWithGoogle,
-  signOut,
-} from '../services/auth.service';
+  registerDevice,
+  sendTestNotification,
+} from '../services/device.service';
 
-import { registerDevice, sendTestNotification, } from '../services/device.service';
+import { signOut } from '../services/auth.service';
 
 
 const Home: React.FC = () => {
 
+  /*
+   * ----------------------------------------
+   * STATE
+   * ----------------------------------------
+   */
+
   const [user, setUser] =
     useState<User | null>(null);
 
-  const [authLoading, setAuthLoading] =
-    useState(true);
-
   const [status, setStatus] =
-    useState('Not registered');
+    useState('Preparing notifications...');
 
   const [token, setToken] =
     useState('');
 
+
+  /*
+   * ----------------------------------------
+   * LOAD CURRENT LOGGED-IN USER
+   * ----------------------------------------
+   */
+
+  useEffect(() => {
+
+    const loadUser = async () => {
+
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+
+      if (error) {
+
+        console.error(
+          'Failed to load user:',
+          error
+        );
+
+        return;
+      }
+
+
+      setUser(user);
+
+    };
+
+
+    loadUser();
+
+  }, []);
+
+
+  /*
+   * ----------------------------------------
+   * AUTOMATIC PUSH NOTIFICATION SETUP
+   * ----------------------------------------
+   *
+   * Runs automatically when Home loads.
+   *
+   * First login:
+   * Home
+   *  ↓
+   * Android permission popup
+   *  ↓
+   * User presses Allow
+   *  ↓
+   * FCM registration
+   *  ↓
+   * FCM token
+   *  ↓
+   * Backend
+   *  ↓
+   * Supabase device_tokens
+   *
+   * Future logins:
+   * permission is already granted,
+   * so no popup appears.
+   * FCM registration happens silently.
+   */
+
+  useEffect(() => {
+
+    if (!Capacitor.isNativePlatform()) {
+
+      setStatus(
+        'Push notifications are available on the mobile app.'
+      );
+
+      return;
+    }
+
+
+    let active = true;
+
+
+    const setupPushNotifications =
+      async () => {
+
+        /*
+         * --------------------------------
+         * FCM REGISTRATION SUCCESS
+         * --------------------------------
+         */
+
+        await PushNotifications.addListener(
+          'registration',
+          async (result) => {
+
+            console.log(
+              'FCM token:',
+              result.value
+            );
+
+
+            if (!active) {
+              return;
+            }
+
+
+            setToken(
+              result.value
+            );
+
+
+            try {
+
+              /*
+               * Save token against the
+               * authenticated Supabase user
+               * through our Express backend.
+               */
+
+              await registerDevice(
+                result.value
+              );
+
+
+              if (active) {
+
+                setStatus(
+                  'Notifications are enabled.'
+                );
+
+              }
+
+            } catch (error) {
+
+              console.error(
+                'Device registration failed:',
+                error
+              );
+
+
+              if (active) {
+
+                setStatus(
+                  'Notification token generated, but device registration failed.'
+                );
+
+              }
+
+            }
+
+          }
+        );
+
+
+        /*
+         * --------------------------------
+         * FCM REGISTRATION ERROR
+         * --------------------------------
+         */
+
+        await PushNotifications.addListener(
+          'registrationError',
+          (error) => {
+
+            console.error(
+              'FCM registration error:',
+              error
+            );
+
+
+            if (active) {
+
+              setStatus(
+                'Notification registration failed.'
+              );
+
+            }
+
+          }
+        );
+
+
+        /*
+         * --------------------------------
+         * NOTIFICATION RECEIVED
+         * WHILE APP IS OPEN
+         * --------------------------------
+         */
+
+        await PushNotifications.addListener(
+          'pushNotificationReceived',
+          (notification) => {
+
+            console.log(
+              'Push notification received:',
+              notification
+            );
+
+          }
+        );
+
+
+        /*
+         * --------------------------------
+         * USER TAPS NOTIFICATION
+         * --------------------------------
+         */
+
+        await PushNotifications.addListener(
+          'pushNotificationActionPerformed',
+          (action) => {
+
+            console.log(
+              'Notification opened:',
+              action.notification
+            );
+
+
+            /*
+             * Later we will use this to open
+             * the correct announcement:
+             *
+             * const announcementId =
+             *   action.notification.data
+             *     ?.announcementId;
+             *
+             * history.push(
+             *   `/announcements/${announcementId}`
+             * );
+             */
+
+          }
+        );
+
+
+        /*
+         * --------------------------------
+         * CHECK AND REQUEST PERMISSION
+         * --------------------------------
+         */
+
+        try {
+
+          let permission =
+            await PushNotifications
+              .checkPermissions();
+
+
+          console.log(
+            'Notification permission:',
+            permission
+          );
+
+
+          /*
+           * Android has never asked
+           * this user before.
+           *
+           * This triggers the system popup:
+           *
+           * "Allow VOIS Pulse to send
+           * you notifications?"
+           */
+
+          if (
+            permission.receive === 'prompt'
+          ) {
+
+            permission =
+              await PushNotifications
+                .requestPermissions();
+
+          }
+
+
+          /*
+           * User rejected notification
+           * permission.
+           */
+
+          if (
+            permission.receive !== 'granted'
+          ) {
+
+            if (active) {
+
+              setStatus(
+                'Notifications are disabled.'
+              );
+
+            }
+
+            return;
+
+          }
+
+
+          /*
+           * Permission is granted.
+           *
+           * On first login:
+           * user has just pressed Allow.
+           *
+           * On future logins:
+           * Android already remembered Allow.
+           */
+
+          if (active) {
+
+            setStatus(
+              'Registering device for notifications...'
+            );
+
+          }
+
+
+          /*
+           * Ask FCM for the registration token.
+           *
+           * When successful, this triggers
+           * the "registration" listener above.
+           */
+
+          await PushNotifications.register();
+
+
+        } catch (error) {
+
+          console.error(
+            'Automatic push setup failed:',
+            error
+          );
+
+
+          if (active) {
+
+            setStatus(
+              'Could not configure notifications.'
+            );
+
+          }
+
+        }
+
+      };
+
+
+    setupPushNotifications();
+
+
+    /*
+     * Cleanup when Home is removed.
+     */
+
+    return () => {
+
+      active = false;
+
+      PushNotifications
+        .removeAllListeners();
+
+    };
+
+  }, []);
+
+
+  /*
+   * ----------------------------------------
+   * TEMPORARY TEST NOTIFICATION
+   * ----------------------------------------
+   *
+   * This is only for development.
+   *
+   * Later the sender Web App will trigger
+   * notifications instead.
+   */
+
   const testNotification = async () => {
+
     try {
 
       setStatus(
         'Sending test notification...'
       );
 
+
       await sendTestNotification();
 
+
       setStatus(
-        'Test notification sent successfully'
+        'Test notification sent successfully.'
       );
+
 
     } catch (error) {
 
@@ -58,286 +440,58 @@ const Home: React.FC = () => {
         error
       );
 
+
       setStatus(
-        'Test notification failed'
+        'Test notification failed.'
       );
 
     }
+
   };
-  /*
-   * --------------------------------
-   * SUPABASE AUTHENTICATION
-   * --------------------------------
-   */
-  useEffect(() => {
-
-    const loadSession = async () => {
-
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
-
-      if (error) {
-        console.error(
-          'Failed to read Supabase session:',
-          error
-        );
-      }
-
-      setUser(session?.user ?? null);
-
-      setAuthLoading(false);
-    };
-
-
-    loadSession();
-
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-
-        console.log(
-          'Auth state changed:',
-          _event
-        );
-
-        setUser(
-          session?.user ?? null
-        );
-
-      }
-    );
-
-
-    return () => {
-      subscription.unsubscribe();
-    };
-
-  }, []);
 
 
   /*
-   * --------------------------------
-   * FCM LISTENERS
-   * --------------------------------
+   * ----------------------------------------
+   * SIGN OUT
+   * ----------------------------------------
    */
-  useEffect(() => {
 
-    if (!Capacitor.isNativePlatform()) {
-      return;
+  const handleSignOut = async () => {
+
+    try {
+
+      await signOut();
+
+
+      /*
+       * App.tsx detects that the Supabase
+       * session is now null and redirects:
+       *
+       * /home
+       *   ↓
+       * /login
+       */
+
+    } catch (error) {
+
+      console.error(
+        'Sign out failed:',
+        error
+      );
+
     }
 
-
-    const setupListeners = async () => {
-
-      await PushNotifications.addListener(
-        'registration',
-        async (result) => {
-
-          console.log(
-            'FCM token:',
-            result.value
-          );
-
-          setToken(result.value);
-
-
-          try {
-
-            await registerDevice(
-              result.value
-            );
-
-
-            setStatus(
-              'FCM registered and device saved successfully'
-            );
-
-          } catch (error) {
-
-            console.error(
-              'Device registration failed:',
-              error
-            );
-
-
-            if (
-              error instanceof Error &&
-              error.message.includes(
-                'logged in'
-              )
-            ) {
-
-              setStatus(
-                'FCM token received — login required before saving'
-              );
-
-            } else {
-
-              setStatus(
-                'FCM token received, but backend registration failed'
-              );
-
-            }
-          }
-        }
-      );
-
-
-      await PushNotifications.addListener(
-        'registrationError',
-        (error) => {
-
-          console.error(
-            'FCM registration error:',
-            error
-          );
-
-          setStatus(
-            'FCM registration failed'
-          );
-
-        }
-      );
-
-
-      await PushNotifications.addListener(
-        'pushNotificationReceived',
-        (notification) => {
-
-          console.log(
-            'Notification received:',
-            notification
-          );
-
-        }
-      );
-
-    };
-
-
-    setupListeners();
-
-
-    return () => {
-      PushNotifications.removeAllListeners();
-    };
-
-  }, []);
+  };
 
 
   /*
-   * --------------------------------
-   * ENABLE PUSH NOTIFICATIONS
-   * --------------------------------
-   */
-  const enableNotifications =
-    async () => {
-
-      try {
-
-        if (!user) {
-
-          setStatus(
-            'Please sign in first'
-          );
-
-          return;
-        }
-
-
-        if (!Capacitor.isNativePlatform()) {
-
-          setStatus(
-            'Push notifications must be tested on Android'
-          );
-
-          return;
-        }
-
-
-        let permission =
-          await PushNotifications
-            .checkPermissions();
-
-
-        if (
-          permission.receive ===
-          'prompt'
-        ) {
-
-          permission =
-            await PushNotifications
-              .requestPermissions();
-
-        }
-
-
-        if (
-          permission.receive !==
-          'granted'
-        ) {
-
-          setStatus(
-            'Notification permission denied'
-          );
-
-          return;
-        }
-
-
-        setStatus(
-          'Registering with FCM...'
-        );
-
-
-        await PushNotifications.register();
-
-
-      } catch (error) {
-
-        console.error(error);
-
-        setStatus(
-          'Error while registering'
-        );
-
-      }
-
-    };
-
-
-  /*
-   * --------------------------------
+   * ----------------------------------------
    * UI
-   * --------------------------------
+   * ----------------------------------------
    */
-
-  if (authLoading) {
-
-    return (
-      <IonPage>
-
-        <IonContent className="ion-padding">
-
-          <IonSpinner />
-
-          <p>
-            Loading...
-          </p>
-
-        </IonContent>
-
-      </IonPage>
-    );
-
-  }
-
 
   return (
+
     <IonPage>
 
       <IonHeader>
@@ -345,7 +499,7 @@ const Home: React.FC = () => {
         <IonToolbar>
 
           <IonTitle>
-            Vodannounce
+            VOIS Pulse
           </IonTitle>
 
         </IonToolbar>
@@ -355,119 +509,130 @@ const Home: React.FC = () => {
 
       <IonContent className="ion-padding">
 
-        {!user ? (
+
+        {/* USER INFORMATION */}
+
+        <h2>
+          Welcome
+        </h2>
+
+
+        {user ? (
 
           <>
-            <h2>
-              Welcome to Vodannounce
-            </h2>
-
-            <p>
-              Sign in to receive company
-              announcements.
-            </p>
-
-            <IonButton
-              expand="block"
-              onClick={signInWithGoogle}
-            >
-              Continue with Google
-            </IonButton>
-          </>
-
-        ) : (
-
-          <>
-            <h2>
-              Welcome
-            </h2>
 
             <p>
               Logged in as:
             </p>
 
+
             <strong>
               {user.email}
             </strong>
 
-            <p>
-              User ID:
-            </p>
+          </>
 
-            <small>
-              {user.id}
-            </small>
+        ) : (
 
+          <p>
+            Loading employee information...
+          </p>
 
-            <br />
-            <br />
+        )}
 
 
-            <IonButton
-              expand="block"
-              onClick={enableNotifications}
-            >
-              Enable Notifications
-            </IonButton>
+        <br />
 
 
-            <IonButton
-              expand="block"
-              fill="outline"
-              color="medium"
-              onClick={signOut}
-            >
-              Sign Out
-            </IonButton>
+        {/* NOTIFICATION STATUS */}
 
+        <h3>
+          Notification Status
+        </h3>
+
+
+        <p>
+          {status}
+        </p>
+
+
+        {/*
+         * TEMPORARY DEVELOPMENT BUTTON.
+         *
+         * Remove this once the web sender app
+         * sends real announcements.
+         */}
+
+        {token && (
+
+          <IonButton
+            expand="block"
+            color="success"
+            onClick={testNotification}
+          >
+
+            Send Test Notification
+
+          </IonButton>
+
+        )}
+
+
+        {/*
+         * TEMPORARY DEVELOPMENT DISPLAY.
+         *
+         * Do not show FCM tokens to users
+         * in the final application.
+         */}
+
+        {token && (
+
+          <>
 
             <h3>
-              Notification Status
+              FCM Token
             </h3>
 
-            <p>
-              {status}
+
+            <p
+              style={{
+                wordBreak: 'break-all',
+                fontSize: '12px',
+              }}
+            >
+
+              {token}
+
             </p>
-            {token && (
-              <IonButton
-                expand="block"
-                color="success"
-                onClick={testNotification}
-              >
-                Send Test Notification
-              </IonButton>
-            )}
-
-            {token && (
-
-              <>
-                <h3>
-                  FCM Token
-                </h3>
-
-                <p
-                  style={{
-                    wordBreak:
-                      'break-all',
-
-                    fontSize:
-                      '12px',
-                  }}
-                >
-                  {token}
-                </p>
-              </>
-
-            )}
 
           </>
 
         )}
 
+
+        <br />
+
+
+        {/* SIGN OUT */}
+
+        <IonButton
+          expand="block"
+          fill="outline"
+          color="medium"
+          onClick={handleSignOut}
+        >
+
+          Sign Out
+
+        </IonButton>
+
+
       </IonContent>
 
     </IonPage>
+
   );
+
 };
 
 
