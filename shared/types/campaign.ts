@@ -1,4 +1,4 @@
-// Announcement enums — mirror the values in
+// Announcement enums, mirror the values in
 // Database["public"]["Enums"] (backend/src/shared/supabase/database.types.ts)
 
 /** Delivery channel for an announcement. */
@@ -34,7 +34,7 @@ export type TargetingCell = Target[];
  *
  * A physical location target is expanded to its footprint groups at
  * resolution time, and the whole expression is stored as the
- * `announcements.targeting` jsonb column exactly as the AI outputs it — the
+ * `announcements.targeting` jsonb column exactly as the AI outputs it, the
  * single target shape shared between backend and frontend.
  *
  * @remarks

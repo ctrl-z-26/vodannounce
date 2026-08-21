@@ -1,77 +1,62 @@
-# React + TypeScript + Vite
+# @vodannounce/web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Admin portal for Communication Managers to draft, preview, and monitor campaigns.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React 18 + Vite + TypeScript
+- Tailwind CSS 4 + Shadcn UI (Radix primitives)
+- react-router 7 (route-based navigation)
+- Supabase Auth (Google OAuth)
 
-## React Compiler
+## Getting Started
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
-
-Note: This will impact Vite dev & build performances.
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+pnpm install
+pnpm dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Scripts
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+| Command | Purpose |
+|---------|---------|
+| `pnpm dev` | Vite dev server (default: `http://localhost:5173`) |
+| `pnpm build` | Production build to `dist/` |
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Project Structure
 
 ```
+/web/src/
+├── api/api.ts              # Axios client + API functions (uses @shared)
+├── lib/supabase.ts         # Supabase client init
+└── app/
+    ├── App.tsx             # Route definitions (react-router)
+    ├── router/             # Auth guard shell (AppShell)
+    ├── pages/              # Screen components (one per route)
+    ├── components/         # Shared UI (badges, layout, icon)
+    └── lib/                # Hooks, formatters, brand tokens
+```
+
+## Route Table
+
+See `docs/WEB_ROUTES.md` for the full route table, wizard flow, and backend endpoint contract.
+
+## Import Conventions
+
+```ts
+// Shared types and client
+import type { Campaign } from '@shared/types/campaign';
+import { createApiClient } from '@shared/api/client';
+
+// React Router (v7 — merged from react-router-dom)
+import { Route, Routes, useNavigate, useParams } from 'react-router';
+
+// Lucide icons
+import { Home, Plus } from 'lucide-react';
+```
+
+## TypeScript
+
+- `verbatimModuleSyntax` is enabled — all type-only imports must use `import type`.
+- `noUnusedLocals` and `noUnusedParameters` are enforced.
+- The Vite esbuild does transpile-only (no type-checking during build). Run `tsc --noEmit` separately for type verification.
