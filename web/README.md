@@ -12,16 +12,16 @@ Admin portal for Communication Managers to draft, preview, and monitor campaigns
 ## Getting Started
 
 ```bash
-pnpm install
-pnpm dev
+npm install
+npm run dev
 ```
 
 ## Scripts
 
 | Command | Purpose |
 |---------|---------|
-| `pnpm dev` | Vite dev server (default: `http://localhost:5173`) |
-| `pnpm build` | Production build to `dist/` |
+| `npm run dev` | Vite dev server (default: `http://localhost:5173`) |
+| `npm run build` | Production build to `dist/` |
 
 ## Project Structure
 
