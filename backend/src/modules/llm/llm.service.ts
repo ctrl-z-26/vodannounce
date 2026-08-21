@@ -1,7 +1,8 @@
 import { GoogleGenAI } from '@google/genai';
 import { z } from 'zod';
 import { env } from '@shared/config/env.js';
-import { campaignAnalysisSchema, type CampaignAnalysis } from './llm.schema.js';
+import type { TargetContext, TargetingExpression } from '@root-shared/types/campaign.js';
+import { campaignAnalysisSchema, targetSchema, type CampaignAnalysis } from './llm.schema.js';
 
 const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
 
@@ -55,6 +56,17 @@ If you are not yet a GitHub Copilot user on GHEC, please follow the onboarding g
 `;
 
 /**
+ * Builds the full system instruction by appending the exact group/location
+ * names Gemini may reference as targets.
+ */
+function buildSystemInstruction(targetContext: TargetContext): string {
+    return `${SYSTEM_INSTRUCTION}
+
+Groups: ${targetContext.groups.join(', ') || '(none)'}
+Locations: ${targetContext.locations.join(', ') || '(none)'}`;
+}
+
+/**
  * Analyzes a raw announcement prompt via Gemini, returning a structured
  * campaign analysis (priority, channels, formatted content, audience targets).
  *
@@ -64,18 +76,13 @@ If you are not yet a GitHub Copilot user on GHEC, please follow the onboarding g
  */
 export async function analyzeAnnouncement(
     promptText: string,
-    targetContext: { groups: string[]; locations: string[] },
+    targetContext: TargetContext,
 ): Promise<CampaignAnalysis> {
-    const systemInstruction = `${SYSTEM_INSTRUCTION}
-
-Groups: ${targetContext.groups.join(', ') || '(none)'}
-Locations: ${targetContext.locations.join(', ') || '(none)'}`;
-
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: `Analyze this announcement prompt:\n\n"${promptText}"`,
         config: {
-            systemInstruction,
+            systemInstruction: buildSystemInstruction(targetContext),
             responseMimeType: 'application/json',
             responseJsonSchema: z.toJSONSchema(campaignAnalysisSchema),
             temperature: 0.2,
@@ -87,4 +94,62 @@ Locations: ${targetContext.locations.join(', ') || '(none)'}`;
     }
     const rawJson = JSON.parse(response.text);
     return campaignAnalysisSchema.parse(rawJson);
+}
+
+/** Zod schema for the targets-only repair response. */
+const repairedTargetsSchema = z.array(z.array(targetSchema)).min(1);
+
+/**
+ * Asks Gemini to correct invalid audience targets from a previous analysis.
+ *
+ * Replays the original exchange as conversation history and appends a
+ * corrective user turn naming the invalid targets; the response is constrained
+ * to a targets-only JSON schema so valid content fields stay untouched.
+ *
+ * @param promptText - The original manager's announcement draft.
+ * @param previousAnalysis - The analysis whose targets contained invalid names.
+ * @param invalidNames - Target names rejected by validation.
+ * @param targetContext - The exact group/location names Gemini may reference.
+ * @returns A validated DNF targeting expression using exact names.
+ */
+export async function repairTargets(
+    promptText: string,
+    previousAnalysis: CampaignAnalysis,
+    invalidNames: string[],
+    targetContext: TargetContext,
+): Promise<TargetingExpression> {
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [
+            {
+                role: 'user',
+                parts: [{ text: `Analyze this announcement prompt:\n\n"${promptText}"` }],
+            },
+            {
+                role: 'model',
+                parts: [{ text: JSON.stringify(previousAnalysis) }],
+            },
+            {
+                role: 'user',
+                parts: [
+                    {
+                        text:
+                            `Targets ${invalidNames.map((name) => `'${name}'`).join(', ')} do not exist. ` +
+                            'Return corrected targets only, using exact names from the Groups/Locations lists.',
+                    },
+                ],
+            },
+        ],
+        config: {
+            systemInstruction: buildSystemInstruction(targetContext),
+            responseMimeType: 'application/json',
+            responseJsonSchema: z.toJSONSchema(repairedTargetsSchema),
+            temperature: 0.2,
+        },
+    });
+
+    if (!response.text) {
+        throw new Error('Gemini returned an empty response');
+    }
+    return repairedTargetsSchema.parse(JSON.parse(response.text));
 }
