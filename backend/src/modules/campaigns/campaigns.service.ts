@@ -97,3 +97,42 @@ export async function analyzeAndCreateDraft(
     // field, so this is the only conversion at the database boundary.
     return data as Campaign;
 }
+
+/**
+ * Returns all announcements ordered by creation date (newest first).
+ */
+export async function listCampaigns(): Promise<Campaign[]> {
+    const { data, error } = await supabase
+        .from('announcements')
+        .select('*')
+        .order('created_at', { ascending: false });
+    if (error) throw new Error(`Failed to list campaigns: ${error.message}`);
+    return data as Campaign[];
+}
+
+/**
+ * Returns a single announcement by id.
+ *
+ * @throws When the announcement does not exist or the query fails.
+ */
+export async function getCampaignById(id: string): Promise<Campaign> {
+    const { data, error } = await supabase
+        .from('announcements')
+        .select('*')
+        .eq('id', id)
+        .single();
+    if (error || !data) throw new Error(`Campaign not found: ${error?.message ?? id}`);
+    return data as Campaign;
+}
+
+/**
+ * Returns all recipient records for a given announcement.
+ */
+export async function getCampaignRecipients(campaignId: string): Promise<Database['public']['Tables']['announcement_recipients']['Row'][]> {
+    const { data, error } = await supabase
+        .from('announcement_recipients')
+        .select('*')
+        .eq('announcement_id', campaignId);
+    if (error) throw new Error(`Failed to fetch recipients: ${error.message}`);
+    return data ?? [];
+}

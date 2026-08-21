@@ -7,7 +7,7 @@ import type {
 import { supabase } from '../lib/supabase';
 
 const BASE_URL =
-    (import.meta.env.VITE_VODANNOUNCE_API_URL as string) ?? 'http://localhost:3000';
+    (import.meta.env.VITE_VODANNOUNCE_API_URL as string) ?? 'http://localhost:3000/api';
 
 const api = createApiClient({
     baseUrl: BASE_URL,
@@ -66,11 +66,11 @@ export async function getRecipients(campaignId: string): Promise<CampaignRecipie
     return res.data;
 }
 
-// POST /api/campaigns/analyze
+// POST /campaigns/analyze
 export async function analyzeCampaign(
     data: AnalyzeAnnouncementRequest,
 ): Promise<Campaign> {
-    const res = await api.post<Campaign>('/api/campaigns/analyze', data);
+    const res = await api.post<Campaign>('/campaigns/analyze', data);
     return res.data;
 }
 
