@@ -17,7 +17,8 @@ export async function analyzeCampaign(req: Request, res: Response): Promise<void
         return;
     }
     try {
-        const campaign = await analyzeAndCreateDraft(parsed.data, null);
+        const userId = res.locals.userId as string;
+        const campaign = await analyzeAndCreateDraft(parsed.data, userId);
         res.status(201).json(campaign);
     } catch (error) {
         res.status(500).json({ error: error instanceof Error ? error.message : 'Internal server error' });

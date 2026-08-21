@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { useAnimate } from 'motion/react';
 import * as api from '../api/api';
@@ -46,8 +47,15 @@ function Typewriter() {
 }
 
 export default function WebLogin() {
+   const [searchParams] = useSearchParams();
    const [loading, setLoading] = useState(false);
    const [error, setError] = useState('');
+
+   useEffect(() => {
+      if (searchParams.get('error') === 'unauthorized') {
+         setError('Access denied. Only senders and administrators can use the web portal.');
+      }
+   }, [searchParams]);
 
    const handleGoogle = async () => {
       setError('');

@@ -1,6 +1,9 @@
 // Announcement enums, mirror the values in
 // Database["public"]["Enums"] (backend/src/shared/supabase/database.types.ts)
 
+/** User role in the system, mirrors the `profile_role` DB enum. */
+export type ProfileRole = 'admin' | 'sender' | 'employee';
+
 /** Delivery channel for an announcement. */
 export type AnnouncementChannel = 'email' | 'teams' | 'mobile_push';
 
