@@ -107,7 +107,7 @@ export function WebLayout({
                   <Menu size={20} />
                </button>
             </div>
-            <div className="flex-1 overflow-y-auto pt-6 px-6 pb-6">{children}</div>
+            <div key={location.pathname} className="flex-1 overflow-y-auto pt-6 px-6 pb-6 pop-in">{children}</div>
          </div>
       </div>
    );
