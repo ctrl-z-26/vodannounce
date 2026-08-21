@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { Archive, Home, LogOut, Menu, Plus } from 'lucide-react';
-import { VodafoneIcon } from './vodafone-icon';
 import { BG } from '../lib/brand';
 
 const NAV_ITEMS = [
@@ -19,7 +18,6 @@ function activeNavPath(pathname: string): string | null {
 }
 
 /**
- * Application chrome: dark sidebar navigation plus top search/user header.
  * Renders children inside the scrollable content area.
  */
 export function WebLayout({
@@ -47,11 +45,11 @@ export function WebLayout({
          )}
          {/* Sidebar */}
          <div
-            className={`fixed inset-y-0 left-0 z-40 w-56 flex flex-col transition-transform duration-200 md:relative md:translate-x-0 md:z-auto gradient-animated ${sidebar ? 'translate-x-0' : '-translate-x-full'}`}
+            className={`fixed inset-y-0 left-0 z-40 w-65 flex flex-col transition-transform duration-200 md:relative md:translate-x-0 md:z-auto gradient-animated ${sidebar ? 'translate-x-0' : '-translate-x-full'}`}
          >
             <div className="px-4 pt-5 pb-4 border-b border-white/10">
                <div className="flex items-center gap-2.5">
-                  <VodafoneIcon size={30} />
+                  <img src="/vodannounce.svg" width={30} height={30} alt="Vodannounce" />
                   <div>
                      <div className="text-white font-bold text-sm leading-tight">
                         Vodannounce
@@ -80,14 +78,16 @@ export function WebLayout({
                ))}
             </nav>
             <div className="px-3 py-4 border-t border-white/10">
-               <div className="flex items-center gap-3 px-3 mb-3 select-none cursor-default">
+               <div className="flex items-center gap-3 px-2 mb-3 select-none cursor-default">
                   <div
                      className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
                      style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
                   >
                      {userInitials}
                   </div>
-                  <div className="text-sm font-medium text-white/50 leading-tight">{userFull}</div>
+                  <div className="text-sm font-bold text-white/50 leading-tight">
+                     {userFull}
+                  </div>
                </div>
                <button
                   onClick={onLogout}
@@ -107,7 +107,7 @@ export function WebLayout({
                   <Menu size={20} />
                </button>
             </div>
-            <div className="flex-1 overflow-y-auto">{children}</div>
+            <div className="flex-1 overflow-y-auto pt-6 px-6 pb-6">{children}</div>
          </div>
       </div>
    );

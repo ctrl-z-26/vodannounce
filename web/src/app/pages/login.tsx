@@ -1,8 +1,49 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Loader2 } from 'lucide-react';
+import { useAnimate } from 'motion/react';
 import * as api from '../api/api';
-import { VodafoneIcon } from '../components/vodafone-icon';
 import { BG, DARK, RED } from '../lib/brand';
+
+const SLOGANS = ['Be Unrivalled', 'Create The Future'];
+
+function Typewriter() {
+   const [scope, animate] = useAnimate<HTMLSpanElement>();
+   const indexRef = useRef(0);
+
+   useEffect(() => {
+      const el = scope.current;
+      if (!el) return;
+      let cancelled = false;
+
+      async function run() {
+         while (!cancelled) {
+            const text = SLOGANS[indexRef.current];
+            // Type in
+            for (let i = 1; i <= text.length; i++) {
+               if (cancelled) return;
+               el.textContent = text.slice(0, i);
+               await animate(el, { opacity: [0, 1] }, { duration: 0.001 });
+               await new Promise((r) => setTimeout(r, 80));
+            }
+            // Pause
+            await new Promise((r) => setTimeout(r, 2000));
+            // Delete out
+            for (let i = text.length; i >= 0; i--) {
+               if (cancelled) return;
+               el.textContent = text.slice(0, i);
+               await new Promise((r) => setTimeout(r, 40));
+            }
+            indexRef.current = (indexRef.current + 1) % SLOGANS.length;
+         }
+      }
+      run();
+      return () => {
+         cancelled = true;
+      };
+   }, [animate, scope]);
+
+   return <span ref={scope} className="text-sm font-bold text-white typewriter-cursor" />;
+}
 
 export default function WebLogin() {
    const [loading, setLoading] = useState(false);
@@ -22,17 +63,14 @@ export default function WebLogin() {
    return (
       <div className="min-h-full flex" style={{ background: BG }}>
          {/* Left panel — brand */}
-         <div
-            className="hidden lg:flex flex-col justify-between w-96 flex-shrink-0 p-10"
-            style={{ backgroundColor: DARK }}
-         >
+         <div className="hidden lg:flex flex-col justify-between w-96 flex-shrink-0 p-10 gradient-animated">
             <div className="flex items-center gap-3">
-               <VodafoneIcon size={32} />
+               <img src="/vodannounce.svg" width={32} height={32} alt="Vodannounce" />
                <div>
                   <div className="text-white font-bold text-base leading-tight">
                      Vodannounce
                   </div>
-                  <div className="text-white/40 text-[11px]">VOIS Sender Portal</div>
+                  <div className="text-white/60 text-[11px]">VOIS Sender Portal</div>
                </div>
             </div>
             <div>
@@ -41,30 +79,27 @@ export default function WebLogin() {
                   <br />
                   Inform.
                   <br />
-                  <span style={{ color: RED }}>Connect.</span>
+                  <span>Connect.</span>
                </h2>
-               <p className="text-white/40 text-sm leading-relaxed">
+               <p className="text-white/60 text-sm leading-relaxed">
                   AI-powered corporate communication platform for VOIS. Send announcements
                   across all channels and monitor acknowledgements in real time.
                </p>
             </div>
-            <div className="space-y-3">
-               <div className="flex items-center gap-3">
-                  <span className="text-sm font-bold" style={{ color: RED }}>
-                     Be Unrivalled
-                  </span>
-               </div>
-               <div className="flex items-center gap-3">
-                  <span className="text-sm font-bold" style={{ color: RED }}>
-                     Create The Future
-                  </span>
-               </div>
+            <div>
+               <Typewriter />
             </div>
          </div>
          <div className="flex-1 flex items-center justify-center p-6">
             <div className="w-full max-w-sm">
                <div className="flex flex-col items-center mb-8 lg:hidden">
-                  <VodafoneIcon size={48} />
+                  <img
+                     src="/vodannounce.svg"
+                     width={48}
+                     height={48}
+                     alt="Vodannounce"
+                     className="filter-red"
+                  />
                   <h1 className="text-2xl font-bold mt-3" style={{ color: DARK }}>
                      Vodannounce
                   </h1>

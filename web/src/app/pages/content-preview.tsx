@@ -13,8 +13,7 @@ import {
 } from 'lucide-react';
 import type { Campaign } from '@shared/types/campaign';
 import * as api from '../api/api';
-import { VodafoneIcon } from '../components/vodafone-icon';
-import { DARK, HOVER_RED, RED } from '../lib/brand';
+import { DARK, RED } from '../lib/brand';
 
 type TabId = 'teams' | 'email' | 'mobile_push';
 
@@ -201,7 +200,7 @@ export default function WebContentPreview() {
                               className="px-4 py-2.5 flex items-center gap-2"
                               style={{ backgroundColor: DARK }}
                            >
-                              <VodafoneIcon size={20} />
+                               <img src="/vodannounce.svg" width={20} height={20} alt="Vodannounce" />
                               <span className="text-white text-xs font-bold">
                                  Vodannounce — VOIS
                               </span>
@@ -216,8 +215,7 @@ export default function WebContentPreview() {
                               </p>
                               <div className="mt-3 flex gap-2">
                                  <button
-                                    className="flex-1 py-1.5 text-white text-xs font-bold rounded-lg"
-                                    style={{ backgroundColor: RED }}
+                                    className="btn-primary flex-1 py-1.5 text-xs font-bold rounded-lg"
                                  >
                                     Acknowledge
                                  </button>
@@ -262,12 +260,7 @@ export default function WebContentPreview() {
                </button>
                <button
                   onClick={() => navigate(`/campaign/${id}/approve`)}
-                  className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-bold transition-colors"
-                  style={{ backgroundColor: RED }}
-                  onMouseEnter={(e) =>
-                     (e.currentTarget.style.backgroundColor = HOVER_RED)
-                  }
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = RED)}
+                  className="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold"
                >
                   Proceed to Approval <ArrowRight size={15} />
                </button>

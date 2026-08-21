@@ -17,7 +17,7 @@ import type { Campaign } from '@shared/types/campaign';
 import * as api from '../api/api';
 import { CHANNEL_META, priorityLabel } from '../lib/channels';
 import { fmtDateTime } from '../lib/format';
-import { DARK, HOVER_RED, RED } from '../lib/brand';
+import { DARK } from '../lib/brand';
 
 const URGENCY_TEXT: Record<string, string> = {
    critical: 'Critical — Immediate Action Required',
@@ -255,12 +255,7 @@ export default function WebAIPlan() {
             <div className="flex gap-3">
                <button
                   onClick={() => navigate(`/campaign/${id}/preview`)}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 text-white rounded-2xl font-bold transition-colors"
-                  style={{ backgroundColor: RED }}
-                  onMouseEnter={(e) =>
-                     (e.currentTarget.style.backgroundColor = HOVER_RED)
-                  }
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = RED)}
+                  className="btn-primary flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-bold"
                >
                   Use These Recommendations <ArrowRight size={16} />
                </button>

@@ -203,8 +203,7 @@ export default function WebApproval() {
                      <button
                         onClick={handleApprove}
                         disabled={!checked || sending}
-                        className="flex-1 flex items-center justify-center gap-2 px-6 py-2.5 text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                        style={{ backgroundColor: RED }}
+                        className="btn-primary flex-1 flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed"
                      >
                         <Send size={14} /> Approve & Send
                      </button>

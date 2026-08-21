@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { AlertTriangle, Loader2, Zap } from 'lucide-react';
 import * as api from '../api/api';
-import { DARK, HOVER_RED, RED } from '../lib/brand';
+import { DARK, RED } from '../lib/brand';
 
 export default function WebCreateCampaign() {
    const navigate = useNavigate();
@@ -128,13 +128,7 @@ export default function WebCreateCampaign() {
                <button
                   onClick={handleAnalyze}
                   disabled={!announcement.trim() || analyzing}
-                  className="w-full flex items-center justify-center gap-3 px-6 py-4 text-white rounded-2xl font-bold text-base transition-colors shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
-                  style={{ backgroundColor: RED }}
-                  onMouseEnter={(e) => {
-                     if (announcement.trim())
-                        e.currentTarget.style.backgroundColor = HOVER_RED;
-                  }}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = RED)}
+                  className="btn-primary w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl font-bold text-base shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
                >
                   <Zap size={20} /> Analyse with AI
                </button>

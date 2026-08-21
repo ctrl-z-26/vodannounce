@@ -6,7 +6,7 @@ import * as api from '../api/api';
 import { PriorityBadge, StatusBadge } from '../components/badges';
 import { useUser } from '../lib/use-user';
 import { fmtDate } from '../lib/format';
-import { DARK, HOVER_RED, RED } from '../lib/brand';
+import { DARK, RED } from '../lib/brand';
 
 export default function WebDashboard() {
    const navigate = useNavigate();
@@ -77,10 +77,7 @@ export default function WebDashboard() {
             </div>
             <button
                onClick={() => navigate('/campaign/new')}
-               className="flex items-center gap-2 px-4 py-2.5 text-white rounded-xl text-sm font-bold transition-colors shadow-sm"
-               style={{ backgroundColor: RED }}
-               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = HOVER_RED)}
-               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = RED)}
+               className="btn-primary flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm"
             >
                <Plus size={16} /> New Campaign
             </button>
