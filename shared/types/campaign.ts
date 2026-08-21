@@ -17,10 +17,10 @@ export type DeliveryStatus = 'pending' | 'sent' | 'delivered' | 'failed';
 export type TargetType = 'group' | 'location';
 
 /** A single auditable target: a named group or a physical location. */
-export interface Target {
+export type Target = {
     type: TargetType;
     name: string;
-}
+};
 
 /**
  * One AND cell of a targeting expression: a set of targets that must all match.

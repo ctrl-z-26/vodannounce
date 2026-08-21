@@ -6,6 +6,7 @@ import express, {
 
 import cors from 'cors';
 import { fcmRoutes } from './modules/fcm/index.js';
+import { campaignsRoutes } from './modules/campaigns/campaigns.routes.js';
 
 
 const app = express();
@@ -15,6 +16,7 @@ const PORT = env.PORT;
 app.use(express.json());
 
 app.use('/api/fcm', fcmRoutes);
+app.use('/api/campaigns', campaignsRoutes);
 
 app.get('/', (req: Request, res: Response) => {
     res.send({ message: 'Hello from TypeScript and Express!' });
