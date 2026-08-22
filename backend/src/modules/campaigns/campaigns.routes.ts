@@ -5,6 +5,7 @@ import {
     handleGetCampaign,
     handleGetRecipients,
     handleDeleteCampaign,
+    handleCancelCampaign,
 } from './campaigns.controller.js';
 import { requireAuth, requireRole } from '@shared/middleware/auth.middleware.js';
 
@@ -15,3 +16,4 @@ campaignsRoutes.get('/:id', requireAuth, requireRole('admin', 'sender'), handleG
 campaignsRoutes.get('/:id/recipients', requireAuth, requireRole('admin', 'sender'), handleGetRecipients);
 campaignsRoutes.post('/analyze', requireAuth, requireRole('admin', 'sender'), analyzeCampaign);
 campaignsRoutes.delete('/:id', requireAuth, requireRole('admin', 'sender'), handleDeleteCampaign);
+campaignsRoutes.patch('/:id/cancel', requireAuth, requireRole('admin', 'sender'), handleCancelCampaign);

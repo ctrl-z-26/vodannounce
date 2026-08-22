@@ -13,7 +13,8 @@ import {
 import type { Campaign } from '@shared/types/campaign';
 import * as api from '../api/api';
 import { DARK, RED } from '../lib/brand';
-import { DiscardCampaignButton } from '../components/discard-campaign-button';
+import { CampaignActionButton, isCampaignActionable } from '../components/campaign-action-button';
+import { StatusBadge } from '../components/badges';
 
 type TabId = 'teams' | 'email' | 'mobile_push';
 
@@ -88,7 +89,10 @@ export default function WebContentPreview() {
                      AI rewrites each announcement for its channel format
                   </p>
                </div>
-               <DiscardCampaignButton campaignId={id} onDiscarded={() => navigate('/campaign/new')} />
+               <StatusBadge s={campaign.status} />
+               {isCampaignActionable(campaign) && (
+                  <CampaignActionButton campaign={campaign} onDone={() => navigate('/campaign/new')} />
+               )}
             </div>
 
             {/* Channel tabs */}
@@ -250,15 +254,19 @@ export default function WebContentPreview() {
             </div>
 
             <div className="flex gap-3 justify-end">
-               <button className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors">
-                  <Pencil size={14} /> Edit Content
-               </button>
-               <button
-                  onClick={() => navigate(`/campaign/${id}/approve`)}
-                  className="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold"
-               >
-                  Proceed to Approval <ArrowRight size={15} />
-               </button>
+               {(campaign.status === 'draft' || campaign.status === 'scheduled') && (
+                  <>
+                     <button className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors">
+                        <Pencil size={14} /> Edit Content
+                     </button>
+                     <button
+                        onClick={() => navigate(`/campaign/${id}/approve`)}
+                        className="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold"
+                     >
+                        Proceed to Approval <ArrowRight size={15} />
+                     </button>
+                  </>
+               )}
             </div>
          </div>
       </div>

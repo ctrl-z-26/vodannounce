@@ -17,7 +17,8 @@ import * as api from '../api/api';
 import { CHANNEL_META, priorityLabel } from '../lib/channels';
 import { fmtDateTime } from '../lib/format';
 import { DARK } from '../lib/brand';
-import { DiscardCampaignButton } from '../components/discard-campaign-button';
+import { CampaignActionButton, isCampaignActionable } from '../components/campaign-action-button';
+import { StatusBadge } from '../components/badges';
 
 const URGENCY_TEXT: Record<string, string> = {
    critical: 'Critical — Immediate Action Required',
@@ -103,12 +104,15 @@ export default function WebAIPlan() {
                            AI Analysis Complete
                         </span>
                      </div>
+                     <StatusBadge s={campaign.status} />
                   </div>
                   <h1 className="text-xl font-bold" style={{ color: DARK }}>
                      AI Communication Plan
                   </h1>
                </div>
-               <DiscardCampaignButton campaignId={id} onDiscarded={() => navigate('/campaign/new')} />
+               {isCampaignActionable(campaign) && (
+                  <CampaignActionButton campaign={campaign} onDone={() => navigate('/campaign/new')} />
+               )}
             </div>
 
             <div
@@ -243,23 +247,27 @@ export default function WebAIPlan() {
             </div>
 
             <div className="flex gap-3">
-               <button
-                  onClick={() => navigate(`/campaign/${id}/preview`)}
-                  className="btn-primary flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-bold"
-               >
-                  Use These Recommendations
-               </button>
-               <button
-                  onClick={() => setEditing((e) => !e)}
-                  className="flex items-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-bold border transition-colors"
-                  style={
-                     editing
-                        ? { backgroundColor: DARK, color: 'white', borderColor: DARK }
-                        : { borderColor: '#E2E8F0', color: DARK }
-                  }
-               >
-                  <Pencil size={14} /> {editing ? 'Done' : 'Edit'}
-               </button>
+               {(campaign.status === 'draft' || campaign.status === 'scheduled') && (
+                  <>
+                     <button
+                        onClick={() => navigate(`/campaign/${id}/preview`)}
+                        className="btn-primary flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-bold"
+                     >
+                        Use These Recommendations
+                     </button>
+                     <button
+                        onClick={() => setEditing((e) => !e)}
+                        className="flex items-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-bold border transition-colors"
+                        style={
+                           editing
+                              ? { backgroundColor: DARK, color: 'white', borderColor: DARK }
+                              : { borderColor: '#E2E8F0', color: DARK }
+                        }
+                     >
+                        <Pencil size={14} /> {editing ? 'Done' : 'Edit'}
+                     </button>
+                  </>
+               )}
             </div>
          </div>
       </div>

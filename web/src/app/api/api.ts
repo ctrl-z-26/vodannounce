@@ -84,3 +84,9 @@ export async function approveCampaign(id: string): Promise<Campaign> {
 export async function deleteCampaign(id: string): Promise<void> {
     await api.delete(`/campaigns/${id}`);
 }
+
+// PATCH /campaigns/:id/cancel
+export async function cancelCampaign(id: string): Promise<Campaign> {
+    const res = await api.patch<Campaign>(`/campaigns/${id}/cancel`);
+    return res.data;
+}

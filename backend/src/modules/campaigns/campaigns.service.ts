@@ -155,6 +155,46 @@ export async function getCampaignRecipients(
 }
 
 /**
+ * Cancels a scheduled campaign by setting its status to 'cancelled' and
+ * inserting an audit log entry.
+ *
+ * Only campaigns with status 'scheduled' can be cancelled.
+ *
+ * @param id - The campaign UUID to cancel.
+ * @returns The updated campaign with status set to 'cancelled'.
+ * @throws NotFoundError when the campaign does not exist.
+ * @throws BadRequestError when the campaign is not in scheduled status.
+ */
+export async function cancelCampaign(id: string): Promise<Campaign> {
+    const { data: campaign, error: fetchError } = await supabase
+        .from('announcements')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+    if (fetchError || !campaign) throw new NotFoundError('Campaign');
+    if (campaign.status !== 'scheduled') {
+        throw new BadRequestError('Only scheduled campaigns can be cancelled');
+    }
+
+    const { error: updateError } = await supabase
+        .from('announcements')
+        .update({ status: 'cancelled' })
+        .eq('id', id);
+    if (updateError) throw new Error(`Failed to cancel campaign: ${updateError.message}`);
+
+    const log: Database['public']['Tables']['announcement_logs']['Insert'] = {
+        announcement_id: id,
+        action: 'cancelled',
+        user_id: campaign.created_by,
+    };
+    const { error: logError } = await supabase.from('announcement_logs').insert(log);
+    if (logError) throw new Error(`Failed to write audit log: ${logError.message}`);
+
+    return { ...campaign, status: 'cancelled' } as Campaign;
+}
+
+/**
  * Deletes a draft campaign and its related records.
  *
  * Only campaigns with status 'draft' can be deleted. Deletes related
