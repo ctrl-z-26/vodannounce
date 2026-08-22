@@ -12,15 +12,25 @@ export default function WebCreateCampaign() {
    const today = new Date().toISOString().slice(0, 10);
    const [date, setDate] = useState(today);
    const [time, setTime] = useState('09:00');
+   const [immediate, setImmediate] = useState(false);
 
    const handleAnalyze = async () => {
       if (!announcement.trim()) return;
       setError('');
+
+      if (!immediate) {
+         const scheduled = new Date(`${date}T${time}:00`);
+         if (scheduled <= new Date()) {
+            setError('Scheduled date must be in the future.');
+            return;
+         }
+      }
+
       setAnalyzing(true);
       try {
          const campaign = await api.analyzeCampaign({
             prompt: announcement,
-            scheduledAt: date && time ? `${date}T${time}:00` : new Date().toISOString(),
+            scheduledAt: immediate ? null : `${date}T${time}:00`,
          });
          navigate(`/campaign/${campaign.id}/plan`);
       } catch (e) {
@@ -90,14 +100,30 @@ export default function WebCreateCampaign() {
                   <label className="block text-sm font-bold mb-3" style={{ color: DARK }}>
                      Effective Date & Time
                   </label>
-                  <div className="flex gap-3">
+                  <label className="flex items-center gap-2.5 mb-3 cursor-pointer">
+                     <div
+                        className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${immediate ? 'bg-red-500 border-red-500' : 'border-slate-300 bg-white'}`}
+                        onClick={() => setImmediate(!immediate)}
+                     >
+                        {immediate && (
+                           <span className="text-white text-[10px] font-bold">✓</span>
+                        )}
+                     </div>
+                     <span className="text-sm font-semibold" style={{ color: DARK }}>
+                        Send immediately — do not schedule
+                     </span>
+                  </label>
+                  <div
+                     className={`flex gap-3 ${immediate ? 'opacity-40 pointer-events-none' : ''}`}
+                  >
                      <div className="flex-1">
                         <p className="text-xs text-slate-400 mb-1.5 font-medium">Date</p>
                         <input
                            type="date"
                            value={date}
                            onChange={(e) => setDate(e.target.value)}
-                           className="w-full px-3 py-2.5 text-sm bg-[#F4F4F4] border border-slate-200 rounded-xl focus:outline-none focus:border-red-400 transition-colors"
+                           disabled={immediate}
+                           className="w-full px-3 py-2.5 text-sm bg-[#F4F4F4] border border-slate-200 rounded-xl focus:outline-none focus:border-red-400 transition-colors disabled:cursor-not-allowed"
                            style={{ color: DARK }}
                         />
                      </div>
@@ -107,7 +133,8 @@ export default function WebCreateCampaign() {
                            type="time"
                            value={time}
                            onChange={(e) => setTime(e.target.value)}
-                           className="w-full px-3 py-2.5 text-sm bg-[#F4F4F4] border border-slate-200 rounded-xl focus:outline-none focus:border-red-400 transition-colors"
+                           disabled={immediate}
+                           className="w-full px-3 py-2.5 text-sm bg-[#F4F4F4] border border-slate-200 rounded-xl focus:outline-none focus:border-red-400 transition-colors disabled:cursor-not-allowed"
                            style={{ color: DARK }}
                         />
                      </div>

@@ -28,7 +28,7 @@ export async function getTargetContext(): Promise<TargetContext> {
         throw new Error(`Failed to fetch locations: ${locationsResult.error.message}`);
     }
     return {
-        groups: groupsResult.data.map((row) => row.name),
+        groups: ['All', ...groupsResult.data.map((row) => row.name)],
         locations: locationsResult.data.map((row) => row.name),
     };
 }

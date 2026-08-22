@@ -43,6 +43,7 @@ export default function WebAIPlan() {
    const [editPriority, setEditPriority] = useState<string>('normal');
    const [editDate, setEditDate] = useState('');
    const [editTime, setEditTime] = useState('');
+   const [editImmediate, setEditImmediate] = useState(false);
    const [editChannels, setEditChannels] = useState<string[]>([]);
    const [editTargeting, setEditTargeting] = useState<TargetingExpression>([]);
 
@@ -70,9 +71,11 @@ export default function WebAIPlan() {
          const d = new Date(campaign.scheduled_at);
          setEditDate(d.toISOString().slice(0, 10));
          setEditTime(d.toTimeString().slice(0, 5));
+         setEditImmediate(false);
       } else {
          setEditDate('');
          setEditTime('');
+         setEditImmediate(true);
       }
       setEditChannels([...campaign.channels]);
       setEditTargeting(JSON.parse(JSON.stringify(campaign.targeting)));
@@ -81,9 +84,13 @@ export default function WebAIPlan() {
 
    const handleSave = async () => {
       if (!id || !campaign) return;
+      if (!editImmediate) {
+         const scheduled = new Date(`${editDate}T${editTime}:00`);
+         if (scheduled <= new Date()) return;
+      }
       setSaving(true);
       try {
-         const scheduled_at = editDate && editTime ? `${editDate}T${editTime}:00` : null;
+         const scheduled_at = editImmediate ? null : `${editDate}T${editTime}:00`;
          const updated = await api.updateCampaign(id, {
             title: editTitle,
             priority: editPriority as Campaign['priority'],
@@ -243,21 +250,45 @@ export default function WebAIPlan() {
                               Effective Date & Time
                            </p>
                            {editing ? (
-                              <div className="flex gap-2">
-                                 <input
-                                    type="date"
-                                    value={editDate}
-                                    onChange={(e) => setEditDate(e.target.value)}
-                                    className="flex-1 text-sm font-semibold bg-[#F4F4F4] border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-red-400"
-                                    style={{ color: DARK }}
-                                 />
-                                 <input
-                                    type="time"
-                                    value={editTime}
-                                    onChange={(e) => setEditTime(e.target.value)}
-                                    className="w-28 text-sm font-semibold bg-[#F4F4F4] border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-red-400"
-                                    style={{ color: DARK }}
-                                 />
+                              <div className="space-y-2">
+                                 <label className="flex items-center gap-2 cursor-pointer">
+                                    <div
+                                       className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${editImmediate ? 'bg-red-500 border-red-500' : 'border-slate-300 bg-white'}`}
+                                       onClick={() => setEditImmediate(!editImmediate)}
+                                    >
+                                       {editImmediate && (
+                                          <span className="text-white text-[10px] font-bold">
+                                             ✓
+                                          </span>
+                                       )}
+                                    </div>
+                                    <span
+                                       className="text-xs font-bold"
+                                       style={{ color: DARK }}
+                                    >
+                                       Send immediately — do not schedule
+                                    </span>
+                                 </label>
+                                 <div
+                                    className={`flex gap-2 ${editImmediate ? 'opacity-40 pointer-events-none' : ''}`}
+                                 >
+                                    <input
+                                       type="date"
+                                       value={editDate}
+                                       onChange={(e) => setEditDate(e.target.value)}
+                                       disabled={editImmediate}
+                                       className="flex-1 text-sm font-semibold bg-[#F4F4F4] border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-red-400 disabled:cursor-not-allowed"
+                                       style={{ color: DARK }}
+                                    />
+                                    <input
+                                       type="time"
+                                       value={editTime}
+                                       onChange={(e) => setEditTime(e.target.value)}
+                                       disabled={editImmediate}
+                                       className="w-28 text-sm font-semibold bg-[#F4F4F4] border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-red-400 disabled:cursor-not-allowed"
+                                       style={{ color: DARK }}
+                                    />
+                                 </div>
                               </div>
                            ) : (
                               <p
@@ -266,7 +297,7 @@ export default function WebAIPlan() {
                               >
                                  {campaign.scheduled_at
                                     ? fmtDateTime(campaign.scheduled_at)
-                                    : 'Not scheduled'}
+                                    : 'Immediate'}
                               </p>
                            )}
                         </div>

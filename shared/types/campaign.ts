@@ -63,8 +63,8 @@ export type TargetContext = {
 export interface AnalyzeAnnouncementRequest {
     /** The manager's natural-language announcement draft. */
     prompt: string;
-    /** ISO-8601 date/time the announcement is scheduled for. */
-    scheduledAt: string;
+    /** ISO-8601 date/time the announcement is scheduled for, or null for immediate dispatch. */
+    scheduledAt: string | null;
 }
 
 /**

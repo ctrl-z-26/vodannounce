@@ -18,9 +18,18 @@ import { BadRequestError } from '@shared/error/index.js';
 
 const analyzeRequestSchema: z.ZodType<AnalyzeAnnouncementRequest> = z.object({
     prompt: z.string().min(1),
-    scheduledAt: z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
-        message: 'scheduledAt must be a parseable ISO-8601 date/time',
-    }),
+    scheduledAt: z
+        .string()
+        .nullable()
+        .refine(
+            (value) =>
+                value === null ||
+                (Number.isFinite(Date.parse(value)) && new Date(value) > new Date()),
+            {
+                message:
+                    'scheduledAt must be a parseable ISO-8601 date/time in the future',
+            },
+        ),
 });
 
 const uuidSchema = z.uuid();
@@ -93,7 +102,20 @@ const updateCampaignSchema = z.object({
             ),
         )
         .optional(),
-    scheduled_at: z.string().nullable().optional(),
+    scheduled_at: z
+        .string()
+        .nullable()
+        .optional()
+        .refine(
+            (value) =>
+                value === undefined ||
+                value === null ||
+                (Number.isFinite(Date.parse(value)) && new Date(value) > new Date()),
+            {
+                message:
+                    'scheduled_at must be a parseable ISO-8601 date/time in the future',
+            },
+        ),
     teams_message: z.string().nullable().optional(),
     email_subject: z.string().nullable().optional(),
     email_body: z.string().nullable().optional(),
