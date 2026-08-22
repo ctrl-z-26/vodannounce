@@ -1,6 +1,7 @@
 import { type Request, type Response } from 'express';
 import * as fcmService from './fcm.service.js';
 import type { RegisterDeviceRequest } from './fcm.types.js';
+import { BadRequestError } from '@shared/error/index.js';
 
 export async function handleDeviceRegistration(
     req: Request<{}, {}, RegisterDeviceRequest>,
@@ -9,63 +10,22 @@ export async function handleDeviceRegistration(
     const { fcmToken, devicePlatform } = req.body;
     const userId = res.locals.userId as string;
 
-    if (!fcmToken) {
-        res.status(400).json({ error: 'FCM Token missing' });
-        return;
-    }
+    if (!fcmToken) throw new BadRequestError('FCM Token missing');
+    if (!devicePlatform) throw new BadRequestError('Device platform missing');
 
-    if (!devicePlatform) {
-        res.status(400).json({
-            error: 'Device platform missing',
-        });
-        return;
-    }
-
-
-
-    try {
-        await fcmService.saveDeviceToken(userId, fcmToken, devicePlatform);
-        res.status(200).json({ success: true, message: 'Device mapped.' });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
-    }
-
-
+    await fcmService.saveDeviceToken(userId, fcmToken, devicePlatform);
+    res.status(200).json({ success: true, message: 'Device mapped.' });
 }
 
-export async function handleTestNotification(
-    req: Request,
-    res: Response,
-): Promise<void> {
-
+export async function handleTestNotification(req: Request, res: Response): Promise<void> {
     const userId = res.locals.userId as string;
 
-    try {
+    await fcmService.pushToUser(
+        userId,
+        'VOIS Pulse',
+        'Your push notifications are working!',
+        { type: 'test' },
+    );
 
-        await fcmService.pushToUser(
-            userId,
-            'VOIS Pulse',
-            'Your push notifications are working!',
-            {
-                type: 'test',
-            },
-        );
-
-        res.status(200).json({
-            success: true,
-            message: 'Test notification sent.',
-        });
-
-    } catch (error: any) {
-
-        console.error(
-            'Test notification failed:',
-            error
-        );
-
-        res.status(500).json({
-            error: error.message,
-        });
-
-    }
+    res.status(200).json({ success: true, message: 'Test notification sent.' });
 }
