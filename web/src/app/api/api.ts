@@ -79,3 +79,8 @@ export async function approveCampaign(id: string): Promise<Campaign> {
     const res = await api.post<Campaign>(`/campaigns/${id}/approve`);
     return res.data;
 }
+
+// DELETE /campaigns/:id
+export async function deleteCampaign(id: string): Promise<void> {
+    await api.delete(`/campaigns/${id}`);
+}

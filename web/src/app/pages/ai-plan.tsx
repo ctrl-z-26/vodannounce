@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import {
    AlertTriangle,
-   ArrowRight,
    Calendar,
    Check,
    CheckCircle,
@@ -18,6 +17,7 @@ import * as api from '../api/api';
 import { CHANNEL_META, priorityLabel } from '../lib/channels';
 import { fmtDateTime } from '../lib/format';
 import { DARK } from '../lib/brand';
+import { DiscardCampaignButton } from '../components/discard-campaign-button';
 
 const URGENCY_TEXT: Record<string, string> = {
    critical: 'Critical — Immediate Action Required',
@@ -108,17 +108,7 @@ export default function WebAIPlan() {
                      AI Communication Plan
                   </h1>
                </div>
-               <button
-                  onClick={() => setEditing((e) => !e)}
-                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-bold border transition-colors"
-                  style={
-                     editing
-                        ? { backgroundColor: DARK, color: 'white', borderColor: DARK }
-                        : { borderColor: '#E2E8F0', color: DARK }
-                  }
-               >
-                  <Pencil size={14} /> {editing ? 'Done' : 'Edit'}
-               </button>
+               <DiscardCampaignButton campaignId={id} onDiscarded={() => navigate('/campaign/new')} />
             </div>
 
             <div
@@ -257,13 +247,18 @@ export default function WebAIPlan() {
                   onClick={() => navigate(`/campaign/${id}/preview`)}
                   className="btn-primary flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-bold"
                >
-                  Use These Recommendations <ArrowRight size={16} />
+                  Use These Recommendations
                </button>
                <button
-                  onClick={() => navigate('/campaign/new')}
-                  className="px-6 py-3.5 border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-colors text-sm"
+                  onClick={() => setEditing((e) => !e)}
+                  className="flex items-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-bold border transition-colors"
+                  style={
+                     editing
+                        ? { backgroundColor: DARK, color: 'white', borderColor: DARK }
+                        : { borderColor: '#E2E8F0', color: DARK }
+                  }
                >
-                  Modify
+                  <Pencil size={14} /> {editing ? 'Done' : 'Edit'}
                </button>
             </div>
          </div>

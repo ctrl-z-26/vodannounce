@@ -7,13 +7,13 @@ import {
    Mail,
    MessageSquare,
    Pencil,
-   Save,
    Smartphone,
    Zap,
 } from 'lucide-react';
 import type { Campaign } from '@shared/types/campaign';
 import * as api from '../api/api';
 import { DARK, RED } from '../lib/brand';
+import { DiscardCampaignButton } from '../components/discard-campaign-button';
 
 type TabId = 'teams' | 'email' | 'mobile_push';
 
@@ -88,12 +88,7 @@ export default function WebContentPreview() {
                      AI rewrites each announcement for its channel format
                   </p>
                </div>
-               <button
-                  className="flex items-center gap-1.5 px-3.5 py-2 text-white rounded-xl text-xs font-bold"
-                  style={{ backgroundColor: DARK }}
-               >
-                  <Save size={13} /> Save Draft
-               </button>
+               <DiscardCampaignButton campaignId={id} onDiscarded={() => navigate('/campaign/new')} />
             </div>
 
             {/* Channel tabs */}

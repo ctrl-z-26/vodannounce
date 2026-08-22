@@ -8,13 +8,13 @@ import {
    ChevronLeft,
    Clock,
    Pencil,
-   Save,
    Send,
    Users,
 } from 'lucide-react';
 import type { Campaign } from '@shared/types/campaign';
 import * as api from '../api/api';
 import { PriorityBadge, StatusBadge } from '../components/badges';
+import { DiscardCampaignButton } from '../components/discard-campaign-button';
 import { CHANNEL_META } from '../lib/channels';
 import { fmtDate, fmtDateTime } from '../lib/format';
 import { DARK, RED } from '../lib/brand';
@@ -191,9 +191,11 @@ export default function WebApproval() {
                   )}
 
                   <div className="flex flex-wrap gap-3">
-                     <button className="px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors flex items-center gap-2">
-                        <Save size={14} /> Save Draft
-                     </button>
+                     <DiscardCampaignButton
+                        campaignId={id}
+                        onDiscarded={() => navigate('/campaign/new')}
+                        size="md"
+                     />
                      <button
                         onClick={() => navigate(`/campaign/${id}/preview`)}
                         className="px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors flex items-center gap-2"

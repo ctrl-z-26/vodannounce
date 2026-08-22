@@ -6,6 +6,7 @@ import {
     listCampaigns,
     getCampaignById,
     getCampaignRecipients,
+    deleteCampaign,
 } from './campaigns.service.js';
 import { BadRequestError } from '@shared/error/index.js';
 
@@ -46,4 +47,12 @@ export async function handleGetRecipients(req: Request, res: Response): Promise<
 
     const recipients = await getCampaignRecipients(parsed.data);
     res.status(200).json(recipients);
+}
+
+export async function handleDeleteCampaign(req: Request, res: Response): Promise<void> {
+    const parsed = uuidSchema.safeParse(req.params.id);
+    if (!parsed.success) throw new BadRequestError('Invalid campaign id');
+
+    await deleteCampaign(parsed.data);
+    res.status(204).send();
 }

@@ -153,3 +153,38 @@ export async function getCampaignRecipients(
     if (error) throw new Error(`Failed to fetch recipients: ${error.message}`);
     return data ?? [];
 }
+
+/**
+ * Deletes a draft campaign and its related records.
+ *
+ * Only campaigns with status 'draft' can be deleted. Deletes related
+ * recipients, logs, and attachments first, then the campaign itself.
+ *
+ * @param id - The campaign UUID to delete.
+ * @throws NotFoundError when the campaign does not exist.
+ * @throws BadRequestError when the campaign is not in draft status.
+ */
+export async function deleteCampaign(id: string): Promise<void> {
+    const { data: campaign, error: fetchError } = await supabase
+        .from('announcements')
+        .select('status')
+        .eq('id', id)
+        .single();
+
+    if (fetchError || !campaign) throw new NotFoundError('Campaign');
+    if (campaign.status !== 'draft') {
+        throw new BadRequestError('Only draft campaigns can be deleted');
+    }
+
+    // Delete related records first (foreign keys may not have ON DELETE CASCADE)
+    await supabase.from('announcement_recipients').delete().eq('announcement_id', id);
+    await supabase.from('announcement_logs').delete().eq('announcement_id', id);
+    await supabase.from('announcement_attachments').delete().eq('announcement_id', id);
+
+    const { error: deleteError } = await supabase
+        .from('announcements')
+        .delete()
+        .eq('id', id);
+
+    if (deleteError) throw new Error(`Failed to delete campaign: ${deleteError.message}`);
+}
