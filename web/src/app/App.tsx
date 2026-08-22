@@ -1,5 +1,8 @@
-import { Route, Routes } from 'react-router';
-import { AppShell } from './router/app-shell';
+import { Navigate, Outlet, Route, Routes } from 'react-router';
+import * as api from './api/api';
+import { WebLayout } from './components/web-layout';
+import { useUser } from './lib/use-user';
+import { BG } from './lib/brand';
 import WebLogin from './pages/login';
 import WebDashboard from './pages/dashboard';
 import WebCreateCampaign from './pages/create-campaign';
@@ -9,6 +12,36 @@ import WebApproval from './pages/approval';
 import WebLiveMonitoring from './pages/monitoring';
 import WebCampaignHistory from './pages/campaign-history';
 import WebCampaignDetail from './pages/campaign-detail';
+
+const WEB_ALLOWED_ROLES = ['admin', 'sender'] as const;
+
+function AppShell() {
+   const { ready, email, role, fullName, initials } = useUser();
+
+   if (!ready) return null;
+   if (!email) return <Navigate to="/login" replace />;
+
+   if (role !== null && !WEB_ALLOWED_ROLES.includes(role as typeof WEB_ALLOWED_ROLES[number])) {
+      void api.logout();
+      return <Navigate to="/login?error=unauthorized" replace />;
+   }
+
+   if (role === null) return null;
+
+   return (
+      <div className="h-screen overflow-hidden" style={{ background: BG }}>
+         <WebLayout
+            userFull={fullName}
+            userInitials={initials}
+            onLogout={() => {
+               void api.logout();
+            }}
+         >
+            <Outlet />
+         </WebLayout>
+      </div>
+   );
+}
 
 export default function App() {
    return (
