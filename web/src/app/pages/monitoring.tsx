@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router';
-import { Bell, Check, Search } from 'lucide-react';
-import type { CampaignRecipient } from '@shared/types/campaign';
+import { useNavigate, useParams } from 'react-router';
+import { ChevronLeft, Pencil, Search } from 'lucide-react';
+import type { Campaign, CampaignRecipient } from '@shared/types/campaign';
 import * as api from '../api/api';
-import { RecipientStatusDot } from '../components/badges';
+import { StatusBadge, RecipientStatusDot } from '../components/badges';
+import { CampaignActionButton, isCampaignActionable } from '../components/campaign-action-button';
 import { priorityLabel } from '../lib/channels';
 import { fmtDateTime, fmtTime } from '../lib/format';
 import { DARK, RED } from '../lib/brand';
@@ -16,23 +17,17 @@ interface RecipientRow {
 }
 
 export default function WebLiveMonitoring() {
+   const navigate = useNavigate();
    const { id } = useParams<{ id: string }>();
-   const [reminderSent, setReminderSent] = useState(false);
    const [search, setSearch] = useState('');
    const [recipients, setRecipients] = useState<RecipientRow[]>([]);
-   const [campaignTitle, setCampaignTitle] = useState('Loading…');
-   const [campaignMeta, setCampaignMeta] = useState('');
+   const [campaign, setCampaign] = useState<Campaign | null>(null);
 
    useEffect(() => {
       if (!id) return;
       api.getCampaign(id)
-         .then((c) => {
-            setCampaignTitle(c.title);
-            setCampaignMeta(
-               `${c.sent_at ? `Sent ${fmtDateTime(c.sent_at)}` : c.scheduled_at ? `Scheduled for ${fmtDateTime(c.scheduled_at)}` : 'Not scheduled'} · ${priorityLabel(c.priority)} Priority`,
-            );
-         })
-         .catch(() => setCampaignTitle('Campaign unavailable'));
+         .then(setCampaign)
+         .catch(() => setCampaign(null));
       api.getRecipients(id)
          .then((data: CampaignRecipient[]) =>
             setRecipients(
@@ -61,40 +56,59 @@ export default function WebLiveMonitoring() {
       [recipients, search],
    );
 
+   const campaignMeta = campaign
+      ? `${campaign.sent_at ? `Sent ${fmtDateTime(campaign.sent_at)}` : campaign.scheduled_at ? `Scheduled for ${fmtDateTime(campaign.scheduled_at)}` : 'Not scheduled'} · ${priorityLabel(campaign.priority)} Priority`
+      : '';
+
+   const isScheduled = campaign?.status === 'scheduled';
+   const isSent = campaign?.status === 'sent';
+
    return (
       <div className="p-5 lg:p-7 space-y-5">
          {/* Header */}
          <div className="flex items-start justify-between flex-wrap gap-3">
-            <div>
-               <div className="flex items-center gap-2 mb-1">
-                  <span className="flex items-center gap-1.5 px-2.5 py-1 bg-green-50 border border-green-200 rounded-full">
-                     <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                     <span className="text-xs font-bold text-green-700">LIVE</span>
-                  </span>
-                  <span className="text-xs text-slate-400">Last updated: just now</span>
+            <div className="flex items-start gap-3">
+               <button
+                  onClick={() => navigate('/campaign/new')}
+                  className="text-slate-400 hover:text-slate-600 transition-colors mt-0.5"
+               >
+                  <ChevronLeft size={20} />
+               </button>
+               <div>
+                  <div className="flex items-center gap-2 mb-1">
+                     {isSent && (
+                        <span className="flex items-center gap-1.5 px-2.5 py-1 bg-green-50 border border-green-200 rounded-full">
+                           <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                           <span className="text-xs font-bold text-green-700">LIVE</span>
+                        </span>
+                     )}
+                     {campaign && <StatusBadge s={campaign.status} />}
+                  </div>
+                  <h1 className="text-xl font-bold" style={{ color: DARK }}>
+                     {campaign?.title ?? 'Loading…'}
+                  </h1>
+                  <p className="text-sm text-slate-400 mt-0.5">{campaignMeta}</p>
                </div>
-               <h1 className="text-xl font-bold" style={{ color: DARK }}>
-                  {campaignTitle}
-               </h1>
-               <p className="text-sm text-slate-400 mt-0.5">{campaignMeta}</p>
             </div>
-            <button
-               onClick={() => {
-                  if (!reminderSent) setReminderSent(true);
-               }}
-               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${reminderSent ? 'bg-green-50 text-green-700 border border-green-200' : 'text-white'}`}
-               style={reminderSent ? {} : { backgroundColor: RED }}
-            >
-               {reminderSent ? (
+            <div className="flex items-center gap-2">
+               {isScheduled && (
                   <>
-                     <Check size={14} /> Reminder Sent!
-                  </>
-               ) : (
-                  <>
-                     <Bell size={14} /> Send Reminder
+                     <button
+                        onClick={() => navigate(`/campaign/${id}/plan`)}
+                        className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors"
+                     >
+                        <Pencil size={14} /> Edit
+                     </button>
+                     {campaign && isCampaignActionable(campaign) && (
+                        <CampaignActionButton
+                           campaign={campaign}
+                           onDone={() => navigate('/campaign/new')}
+                           size="md"
+                        />
+                     )}
                   </>
                )}
-            </button>
+            </div>
          </div>
 
          {/* Ack rate */}

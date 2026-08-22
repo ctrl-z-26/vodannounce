@@ -3,6 +3,8 @@ import type {
     AnalyzeAnnouncementRequest,
     Campaign,
     CampaignRecipient,
+    TargetContext,
+    UpdateCampaignRequest,
 } from '@shared/types/campaign';
 import { supabase } from '../lib/supabase';
 
@@ -83,4 +85,25 @@ export async function approveCampaign(id: string): Promise<Campaign> {
 // DELETE /campaigns/:id
 export async function deleteCampaign(id: string): Promise<void> {
     await api.delete(`/campaigns/${id}`);
+}
+
+// PATCH /campaigns/:id/cancel
+export async function cancelCampaign(id: string): Promise<Campaign> {
+    const res = await api.patch<Campaign>(`/campaigns/${id}/cancel`);
+    return res.data;
+}
+
+// PATCH /campaigns/:id
+export async function updateCampaign(
+    id: string,
+    updates: UpdateCampaignRequest,
+): Promise<Campaign> {
+    const res = await api.patch<Campaign>(`/campaigns/${id}`, updates);
+    return res.data;
+}
+
+// GET /campaigns/target-context
+export async function getTargetContext(): Promise<TargetContext> {
+    const res = await api.get<TargetContext>('/campaigns/target-context');
+    return res.data;
 }

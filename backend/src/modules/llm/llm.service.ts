@@ -2,7 +2,11 @@ import { GoogleGenAI } from '@google/genai';
 import { z } from 'zod';
 import { env } from '@shared/config/env.js';
 import type { TargetContext, TargetingExpression } from '@root-shared/types/campaign.js';
-import { campaignAnalysisSchema, targetSchema, type CampaignAnalysis } from './llm.schema.js';
+import {
+    campaignAnalysisSchema,
+    targetSchema,
+    type CampaignAnalysis,
+} from './llm.schema.js';
 
 const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
 
@@ -25,9 +29,13 @@ Determine the audience from the announcement's NATURE, not from explicit group n
 - targets is a list of cells. Each cell is an AND of its targets; cells are OR-ed together (union).
   Example: [["Security"], ["B1"]] means "Security group OR everyone at B1".
 
-- Avoid umbrella groups (Management, HR, All) by default. Include them only when the announcement's
+- Avoid umbrella groups (Management, HR) by default. Include them only when the announcement's
   scope genuinely warrants it: HR for staff-facing operational changes (office closure, layoffs,
   policy), Management for high-impact or company-wide crises.
+- "All" targets every employee. Use it ONLY when the announcement is genuinely company-wide
+  (e.g., office closure, company-wide outage). Do NOT use "All" as a convenience when more
+  specific targets exist. "All" must always appear as a standalone cell — never ANDed nor ORed with
+  other targets. To target everyone at a location, use the location name on its own instead.
 - Impact drives management: localized or medium-urgency announcements usually do not include
   management; critical or company-wide ones may.
 - Only use exact names from the provided groups/locations lists, correctly tagged by type.
