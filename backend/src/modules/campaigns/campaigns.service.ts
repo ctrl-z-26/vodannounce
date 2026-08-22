@@ -4,6 +4,7 @@ import type {
     AnalyzeAnnouncementRequest,
     Campaign,
     TargetContext,
+    UpdateCampaignRequest,
 } from '@root-shared/types/campaign.js';
 import { analyzeAnnouncement, repairTargets } from '../llm/index.js';
 import type { CampaignAnalysis } from '../llm/index.js';
@@ -16,7 +17,7 @@ const MAX_REPAIRS = 2;
 /**
  * Fetches the exact group/location names Gemini may reference as targets.
  */
-async function fetchTargetContext(): Promise<TargetContext> {
+export async function getTargetContext(): Promise<TargetContext> {
     const [groupsResult, locationsResult] = await Promise.all([
         supabase.from('groups').select('name'),
         supabase.from('locations').select('name'),
@@ -49,7 +50,7 @@ export async function analyzeAndCreateDraft(
     request: AnalyzeAnnouncementRequest,
     userId: string | null,
 ): Promise<Campaign> {
-    const targetContext = await fetchTargetContext();
+    const targetContext = await getTargetContext();
     let analysis: CampaignAnalysis = await analyzeAnnouncement(
         request.prompt,
         targetContext,
@@ -227,4 +228,50 @@ export async function deleteCampaign(id: string): Promise<void> {
         .eq('id', id);
 
     if (deleteError) throw new Error(`Failed to delete campaign: ${deleteError.message}`);
+}
+
+/**
+ * Partially updates a campaign's mutable fields.
+ *
+ * Only campaigns in 'draft' or 'scheduled' status can be updated.
+ * Inserts an audit log entry with action 'edited'.
+ *
+ * @param id - The campaign UUID to update.
+ * @param updates - Partial fields to apply.
+ * @returns The updated campaign.
+ * @throws NotFoundError when the campaign does not exist.
+ * @throws BadRequestError when the campaign status is not editable.
+ */
+export async function updateCampaign(
+    id: string,
+    updates: UpdateCampaignRequest,
+): Promise<Campaign> {
+    const { data: campaign, error: fetchError } = await supabase
+        .from('announcements')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+    if (fetchError || !campaign) throw new NotFoundError('Campaign');
+    if (campaign.status !== 'draft' && campaign.status !== 'scheduled') {
+        throw new BadRequestError('Only draft or scheduled campaigns can be edited');
+    }
+
+    const { error: updateError } = await supabase
+        .from('announcements')
+        .update(updates)
+        .eq('id', id);
+    if (updateError) throw new Error(`Failed to update campaign: ${updateError.message}`);
+
+    if (campaign.status === 'scheduled') {
+        const log: Database['public']['Tables']['announcement_logs']['Insert'] = {
+            announcement_id: id,
+            action: 'edited',
+            user_id: campaign.created_by,
+        };
+        const { error: logError } = await supabase.from('announcement_logs').insert(log);
+        if (logError) throw new Error(`Failed to write audit log: ${logError.message}`);
+    }
+
+    return { ...campaign, ...updates } as Campaign;
 }

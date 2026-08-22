@@ -105,3 +105,25 @@ export interface CampaignRecipient {
     read_at: string | null;
     created_at: string;
 }
+
+/**
+ * Partial campaign update payload for PATCH /api/campaigns/:id.
+ *
+ * Restricts mutable fields to those a manager can edit during the
+ * plan and preview stages. System-managed fields (id, status,
+ * created_at, sent_at, etc.) are excluded.
+ */
+export type UpdateCampaignRequest = Partial<
+    Pick<
+        Campaign,
+        | 'title'
+        | 'priority'
+        | 'channels'
+        | 'targeting'
+        | 'scheduled_at'
+        | 'teams_message'
+        | 'email_subject'
+        | 'email_body'
+        | 'notification_text'
+    >
+>;

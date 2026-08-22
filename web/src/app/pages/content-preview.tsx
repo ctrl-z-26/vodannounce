@@ -13,7 +13,10 @@ import {
 import type { Campaign } from '@shared/types/campaign';
 import * as api from '../api/api';
 import { DARK, RED } from '../lib/brand';
-import { CampaignActionButton, isCampaignActionable } from '../components/campaign-action-button';
+import {
+   CampaignActionButton,
+   isCampaignActionable,
+} from '../components/campaign-action-button';
 import { StatusBadge } from '../components/badges';
 
 type TabId = 'teams' | 'email' | 'mobile_push';
@@ -29,7 +32,7 @@ const TAB_META: Record<TabId, { label: string; hint: string }> = {
    },
    mobile_push: {
       label: 'Mobile Push',
-      hint: 'Ultra-short. Title ≤50 chars, body ≤100 chars. Tap opens full announcement.',
+      hint: 'Ultra-short. Title <=50 chars, body <=100 chars. Tap opens full announcement.',
    },
 };
 
@@ -44,6 +47,14 @@ export default function WebContentPreview() {
    const { id } = useParams<{ id: string }>();
    const [campaign, setCampaign] = useState<Campaign | null>(null);
    const [channel, setChannel] = useState<TabId>('teams');
+   const [editing, setEditing] = useState(false);
+   const [saving, setSaving] = useState(false);
+
+   // Editable content state
+   const [editTeams, setEditTeams] = useState('');
+   const [editEmailSubject, setEditEmailSubject] = useState('');
+   const [editEmailBody, setEditEmailBody] = useState('');
+   const [editNotification, setEditNotification] = useState('');
 
    useEffect(() => {
       if (!id) return;
@@ -61,14 +72,42 @@ export default function WebContentPreview() {
       );
    }
 
-   // Only show tabs for channels selected on the campaign.
    const tabs = (Object.keys(TAB_META) as TabId[]).filter((t) =>
       campaign.channels.includes(t),
    );
    const activeTab = tabs.includes(channel) ? channel : (tabs[0] ?? 'teams');
 
-   const pushTitle = campaign.title;
-   const pushBody = campaign.notification_text ?? '';
+   const startEditing = () => {
+      setEditTeams(campaign.teams_message ?? '');
+      setEditEmailSubject(campaign.email_subject ?? campaign.title);
+      setEditEmailBody(campaign.email_body ?? '');
+      setEditNotification(campaign.notification_text ?? '');
+      setEditing(true);
+   };
+
+   const handleSave = async () => {
+      if (!id) return;
+      setSaving(true);
+      try {
+         const updated = await api.updateCampaign(id, {
+            teams_message: editTeams,
+            email_subject: editEmailSubject,
+            email_body: editEmailBody,
+            notification_text: editNotification,
+         });
+         setCampaign(updated);
+         setEditing(false);
+      } catch {
+         // keep editing open on failure
+      } finally {
+         setSaving(false);
+      }
+   };
+
+   const pushTitle = editing
+      ? editNotification.slice(0, 50) || campaign.title
+      : campaign.title;
+   const pushBody = editing ? editNotification : (campaign.notification_text ?? '');
 
    return (
       <div className="p-5 lg:p-7">
@@ -91,7 +130,10 @@ export default function WebContentPreview() {
                </div>
                <StatusBadge s={campaign.status} />
                {isCampaignActionable(campaign) && (
-                  <CampaignActionButton campaign={campaign} onDone={() => navigate('/campaign/new')} />
+                  <CampaignActionButton
+                     campaign={campaign}
+                     onDone={() => navigate('/campaign/new')}
+                  />
                )}
             </div>
 
@@ -120,7 +162,7 @@ export default function WebContentPreview() {
                })}
                {tabs.length === 0 && (
                   <span className="px-3 py-2 text-xs text-slate-400">
-                     No channels selected on this campaign
+                     No channels selected
                   </span>
                )}
             </div>
@@ -141,25 +183,35 @@ export default function WebContentPreview() {
                {/* Teams */}
                {activeTab === 'teams' && (
                   <div className="p-5">
-                     <div
-                        className="rounded-xl p-4 text-white"
-                        style={{ backgroundColor: DARK }}
-                     >
-                        <div className="flex items-center gap-2 mb-3">
-                           <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-xs font-bold">
-                              IT
-                           </div>
-                           <div>
-                              <div className="text-sm font-bold">
-                                 IT Communications · #all-staff
+                     {editing ? (
+                        <textarea
+                           value={editTeams}
+                           onChange={(e) => setEditTeams(e.target.value)}
+                           rows={8}
+                           className="w-full text-sm font-semibold bg-[#F4F4F4] border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-400 resize-none"
+                           style={{ color: DARK }}
+                        />
+                     ) : (
+                        <div
+                           className="rounded-xl p-4 text-white"
+                           style={{ backgroundColor: DARK }}
+                        >
+                           <div className="flex items-center gap-2 mb-3">
+                              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-xs font-bold">
+                                 IT
                               </div>
-                              <div className="text-xs text-white/50">Just now</div>
+                              <div>
+                                 <div className="text-sm font-bold">
+                                    IT Communications · #all-staff
+                                 </div>
+                                 <div className="text-xs text-white/50">Just now</div>
+                              </div>
                            </div>
+                           <pre className="text-sm leading-relaxed whitespace-pre-wrap font-sans">
+                              {campaign.teams_message ?? '—'}
+                           </pre>
                         </div>
-                        <pre className="text-sm leading-relaxed whitespace-pre-wrap font-sans">
-                           {campaign.teams_message ?? '—'}
-                        </pre>
-                     </div>
+                     )}
                   </div>
                )}
 
@@ -167,24 +219,35 @@ export default function WebContentPreview() {
                {activeTab === 'email' && (
                   <div className="p-5">
                      <div className="border border-slate-200 rounded-xl overflow-hidden">
-                        <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 space-y-1">
-                           <div className="text-xs text-slate-500">
-                              Subject:{' '}
-                              <span className="font-bold" style={{ color: DARK }}>
-                                 {campaign.email_subject ?? campaign.title}
-                              </span>
-                           </div>
-                           <div className="text-xs text-slate-500">
-                              To:{' '}
-                              <span className="font-semibold" style={{ color: DARK }}>
-                                 All Staff (VOIS) &lt;all-staff@vois.com&gt;
-                              </span>
-                           </div>
-                        </div>
+                         <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center gap-2">
+                            <span className="text-xs text-slate-500 flex-shrink-0">Subject:</span>
+                            {editing ? (
+                               <input
+                                  value={editEmailSubject}
+                                  onChange={(e) => setEditEmailSubject(e.target.value)}
+                                  className="flex-1 min-w-0 font-bold bg-white border border-slate-200 rounded px-2.5 py-1.5 text-xs focus:outline-none focus:border-red-400"
+                                  style={{ color: DARK }}
+                               />
+                            ) : (
+                               <span className="flex-1 min-w-0 font-bold text-xs" style={{ color: DARK }}>
+                                  {campaign.email_subject ?? campaign.title}
+                               </span>
+                            )}
+                         </div>
                         <div className="p-4">
-                           <pre className="text-sm leading-relaxed whitespace-pre-wrap font-sans text-slate-700">
-                              {campaign.email_body ?? '—'}
-                           </pre>
+                           {editing ? (
+                              <textarea
+                                 value={editEmailBody}
+                                 onChange={(e) => setEditEmailBody(e.target.value)}
+                                 rows={12}
+                                 className="w-full text-sm font-semibold bg-[#F4F4F4] border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-400 resize-none"
+                                 style={{ color: DARK }}
+                              />
+                           ) : (
+                              <pre className="text-sm leading-relaxed whitespace-pre-wrap font-sans text-slate-700">
+                                 {campaign.email_body ?? '—'}
+                              </pre>
+                           )}
                         </div>
                      </div>
                   </div>
@@ -199,23 +262,50 @@ export default function WebContentPreview() {
                               className="px-4 py-2.5 flex items-center gap-2"
                               style={{ backgroundColor: DARK }}
                            >
-                               <img src="/vodannounce.svg" width={20} height={20} alt="Vodannounce" />
+                              <img
+                                 src="/vodannounce.svg"
+                                 width={20}
+                                 height={20}
+                                 alt="Vodannounce"
+                              />
                               <span className="text-white text-xs font-bold">
                                  Vodannounce — VOIS
                               </span>
                               <span className="text-white/40 text-xs ml-auto">now</span>
                            </div>
                            <div className="p-4">
-                              <p className="text-sm font-bold mb-1.5" style={{ color: DARK }}>
-                                 {pushTitle}
+                              <p
+                                 className="text-sm font-bold mb-1.5"
+                                 style={{ color: DARK }}
+                              >
+                                 {editing ? (
+                                    <input
+                                       value={editNotification}
+                                       onChange={(e) =>
+                                          setEditNotification(e.target.value)
+                                       }
+                                       className="w-full bg-[#F4F4F4] border border-slate-200 rounded px-2 py-0.5 text-sm focus:outline-none focus:border-red-400"
+                                    />
+                                 ) : (
+                                    pushTitle
+                                 )}
                               </p>
                               <p className="text-xs text-slate-500 leading-relaxed">
-                                 {pushBody || '—'}
+                                 {editing ? (
+                                    <textarea
+                                       value={editNotification}
+                                       onChange={(e) =>
+                                          setEditNotification(e.target.value)
+                                       }
+                                       rows={3}
+                                       className="w-full text-xs bg-[#F4F4F4] border border-slate-200 rounded px-2 py-1 focus:outline-none focus:border-red-400 resize-none"
+                                    />
+                                 ) : (
+                                    pushBody || '—'
+                                 )}
                               </p>
                               <div className="mt-3 flex gap-2">
-                                 <button
-                                    className="btn-primary flex-1 py-1.5 text-xs font-bold rounded-lg"
-                                 >
+                                 <button className="btn-primary flex-1 py-1.5 text-xs font-bold rounded-lg">
                                     Acknowledge
                                  </button>
                                  <button className="flex-1 py-1.5 border border-slate-200 text-slate-600 text-xs font-bold rounded-lg">
@@ -230,9 +320,7 @@ export default function WebContentPreview() {
                            <p className="text-slate-400 font-bold mb-1">Title length</p>
                            <p
                               className="font-bold"
-                              style={{
-                                 color: pushTitle.length > 50 ? RED : '#16a34a',
-                              }}
+                              style={{ color: pushTitle.length > 50 ? RED : '#16a34a' }}
                            >
                               {pushTitle.length} / 50 chars
                            </p>
@@ -241,9 +329,7 @@ export default function WebContentPreview() {
                            <p className="text-slate-400 font-bold mb-1">Body length</p>
                            <p
                               className="font-bold"
-                              style={{
-                                 color: pushBody.length > 100 ? RED : '#16a34a',
-                              }}
+                              style={{ color: pushBody.length > 100 ? RED : '#16a34a' }}
                            >
                               {pushBody.length} / 100 chars
                            </p>
@@ -253,18 +339,42 @@ export default function WebContentPreview() {
                )}
             </div>
 
+            {/* Bottom actions */}
             <div className="flex gap-3 justify-end">
-               {(campaign.status === 'draft' || campaign.status === 'scheduled') && (
+               {isCampaignActionable(campaign) && (
                   <>
-                     <button className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors">
-                        <Pencil size={14} /> Edit Content
-                     </button>
-                     <button
-                        onClick={() => navigate(`/campaign/${id}/approve`)}
-                        className="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold"
-                     >
-                        Proceed to Approval <ArrowRight size={15} />
-                     </button>
+                     {editing ? (
+                        <>
+                           <button
+                              onClick={handleSave}
+                              disabled={saving}
+                              className="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold disabled:opacity-40"
+                           >
+                              {saving ? 'Saving...' : 'Done'}
+                           </button>
+                           <button
+                              onClick={() => setEditing(false)}
+                              className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors"
+                           >
+                              Cancel
+                           </button>
+                        </>
+                     ) : (
+                        <>
+                           <button
+                              onClick={startEditing}
+                              className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors"
+                           >
+                              <Pencil size={14} /> Edit Content
+                           </button>
+                           <button
+                              onClick={() => navigate(`/campaign/${id}/approve`)}
+                              className="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold"
+                           >
+                              Proceed to Approval <ArrowRight size={15} />
+                           </button>
+                        </>
+                     )}
                   </>
                )}
             </div>

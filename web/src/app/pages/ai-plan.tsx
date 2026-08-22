@@ -5,90 +5,120 @@ import {
    Calendar,
    Check,
    CheckCircle,
-   CheckSquare,
    ChevronLeft,
    FileText,
    Pencil,
-   Radio,
    Users,
 } from 'lucide-react';
-import type { Campaign } from '@shared/types/campaign';
+import type {
+   Campaign,
+   TargetingExpression,
+   TargetContext,
+} from '@shared/types/campaign';
 import * as api from '../api/api';
-import { CHANNEL_META, priorityLabel } from '../lib/channels';
+import {
+   CHANNEL_META,
+   CHANNEL_ORDER,
+   channelIconStyle,
+   priorityLabel,
+} from '../lib/channels';
 import { fmtDateTime } from '../lib/format';
 import { DARK } from '../lib/brand';
-import { CampaignActionButton, isCampaignActionable } from '../components/campaign-action-button';
+import {
+   CampaignActionButton,
+   isCampaignActionable,
+} from '../components/campaign-action-button';
 import { StatusBadge } from '../components/badges';
-
-const URGENCY_TEXT: Record<string, string> = {
-   critical: 'Critical — Immediate Action Required',
-   important: 'Important — Timely Action Required',
-   normal: 'Normal — For Your Awareness',
-};
+import { TargetingEditor } from '../components/targeting-editor';
 
 export default function WebAIPlan() {
    const navigate = useNavigate();
    const { id } = useParams<{ id: string }>();
    const [campaign, setCampaign] = useState<Campaign | null>(null);
    const [editing, setEditing] = useState(false);
+   const [saving, setSaving] = useState(false);
+
+   // Editable form state
+   const [editTitle, setEditTitle] = useState('');
+   const [editPriority, setEditPriority] = useState<string>('normal');
+   const [editDate, setEditDate] = useState('');
+   const [editTime, setEditTime] = useState('');
+   const [editChannels, setEditChannels] = useState<string[]>([]);
+   const [editTargeting, setEditTargeting] = useState<TargetingExpression>([]);
+
+   // Target context for audience picker
+   const [targetContext, setTargetContext] = useState<TargetContext>({
+      groups: [],
+      locations: [],
+   });
 
    useEffect(() => {
       if (!id) return;
       api.getCampaign(id)
          .then(setCampaign)
          .catch(() => setCampaign(null));
+      api.getTargetContext()
+         .then(setTargetContext)
+         .catch(() => {});
    }, [id]);
+
+   const startEditing = () => {
+      if (!campaign) return;
+      setEditTitle(campaign.title);
+      setEditPriority(campaign.priority);
+      if (campaign.scheduled_at) {
+         const d = new Date(campaign.scheduled_at);
+         setEditDate(d.toISOString().slice(0, 10));
+         setEditTime(d.toTimeString().slice(0, 5));
+      } else {
+         setEditDate('');
+         setEditTime('');
+      }
+      setEditChannels([...campaign.channels]);
+      setEditTargeting(JSON.parse(JSON.stringify(campaign.targeting)));
+      setEditing(true);
+   };
+
+   const handleSave = async () => {
+      if (!id || !campaign) return;
+      setSaving(true);
+      try {
+         const scheduled_at = editDate && editTime ? `${editDate}T${editTime}:00` : null;
+         const updated = await api.updateCampaign(id, {
+            title: editTitle,
+            priority: editPriority as Campaign['priority'],
+            channels: editChannels as Campaign['channels'],
+            targeting: editTargeting,
+            scheduled_at,
+         });
+         setCampaign(updated);
+         setEditing(false);
+      } catch {
+         // keep editing open on failure
+      } finally {
+         setSaving(false);
+      }
+   };
+
+   const toggleChannel = (ch: string) => {
+      setEditChannels((prev) =>
+         prev.includes(ch) ? prev.filter((c) => c !== ch) : [...prev, ch],
+      );
+   };
 
    if (!id) return null;
    if (!campaign) {
       return (
          <div className="p-5 lg:p-7">
-            <p className="text-sm text-slate-400">Loading campaign…</p>
+            <p className="text-sm text-slate-400">Loading campaign...</p>
          </div>
       );
    }
 
-   const audience = Array.from(
-      new Set(
-         campaign.targeting.flatMap((cell) =>
-            cell.map((t) => (t.type === 'group' ? t.name : `Location: ${t.name}`)),
-         ),
-      ),
-   );
-   const channelRows = campaign.channels.map((ch) => CHANNEL_META[ch]);
-
-   const cards = [
-      {
-         label: 'Urgency Classification',
-         value: URGENCY_TEXT[campaign.priority] ?? priorityLabel(campaign.priority),
-         icon: AlertTriangle,
-         iconClass: 'text-red-600 bg-red-50',
-      },
-      {
-         label: 'Topic',
-         value: campaign.title,
-         icon: FileText,
-         iconClass: 'text-blue-600 bg-blue-50',
-      },
-      {
-         label: 'Effective Date & Time',
-         value: campaign.scheduled_at
-            ? fmtDateTime(campaign.scheduled_at)
-            : 'Not scheduled',
-         icon: Calendar,
-         iconClass: 'text-amber-600 bg-amber-50',
-      },
-      {
-         label: 'Required Action',
-         value: campaign.notification_text ?? campaign.original_text,
-         icon: CheckSquare,
-         iconClass: 'text-green-600 bg-green-50',
-      },
-   ];
-
    return (
       <div className="p-5 lg:p-7">
          <div className="max-w-4xl">
+            {/* Header */}
             <div className="flex items-center gap-3 mb-6">
                <button
                   onClick={() => navigate('/campaign/new')}
@@ -111,10 +141,14 @@ export default function WebAIPlan() {
                   </h1>
                </div>
                {isCampaignActionable(campaign) && (
-                  <CampaignActionButton campaign={campaign} onDone={() => navigate('/campaign/new')} />
+                  <CampaignActionButton
+                     campaign={campaign}
+                     onDone={() => navigate('/campaign/new')}
+                  />
                )}
             </div>
 
+            {/* Campaign banner */}
             <div
                className="rounded-2xl p-5 mb-5 flex items-center justify-between"
                style={{ backgroundColor: DARK }}
@@ -134,138 +168,260 @@ export default function WebAIPlan() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
+               {/* Left column — editable cards */}
                <div className="space-y-4">
-                  {cards.map(({ label, value, icon: Icon, iconClass }) => (
-                     <div
-                        key={label}
-                        className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"
-                     >
-                        <div className="flex items-start gap-3">
-                           <div
-                              className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${iconClass}`}
-                           >
-                              <Icon size={16} />
-                           </div>
-                           <div className="flex-1 min-w-0">
-                              <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">
-                                 {label}
+                  {/* Topic */}
+                  <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                     <div className="flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-blue-50">
+                           <FileText size={16} className="text-blue-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                           <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">
+                              Topic
+                           </p>
+                           {editing ? (
+                              <input
+                                 value={editTitle}
+                                 onChange={(e) => setEditTitle(e.target.value)}
+                                 className="w-full text-sm font-semibold bg-[#F4F4F4] border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-red-400"
+                                 style={{ color: DARK }}
+                              />
+                           ) : (
+                              <p
+                                 className="text-sm font-bold break-words"
+                                 style={{ color: DARK }}
+                              >
+                                 {campaign.title}
                               </p>
-                              {editing ? (
+                           )}
+                        </div>
+                     </div>
+                  </div>
+
+                  {/* Urgency */}
+                  <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                     <div className="flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-red-50">
+                           <AlertTriangle size={16} className="text-red-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                           <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">
+                              Urgency
+                           </p>
+                           {editing ? (
+                              <select
+                                 value={editPriority}
+                                 onChange={(e) => setEditPriority(e.target.value)}
+                                 className="w-full text-sm font-semibold bg-[#F4F4F4] border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-red-400"
+                                 style={{ color: DARK }}
+                              >
+                                 <option value="normal">Normal</option>
+                                 <option value="important">Important</option>
+                                 <option value="critical">Critical</option>
+                              </select>
+                           ) : (
+                              <p
+                                 className="text-sm font-bold break-words"
+                                 style={{ color: DARK }}
+                              >
+                                 {priorityLabel(campaign.priority)}
+                              </p>
+                           )}
+                        </div>
+                     </div>
+                  </div>
+
+                  {/* Effective Date & Time */}
+                  <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                     <div className="flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-amber-50">
+                           <Calendar size={16} className="text-amber-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                           <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">
+                              Effective Date & Time
+                           </p>
+                           {editing ? (
+                              <div className="flex gap-2">
                                  <input
-                                    defaultValue={value}
-                                    className="w-full text-sm font-semibold bg-[#F4F4F4] border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none"
+                                    type="date"
+                                    value={editDate}
+                                    onChange={(e) => setEditDate(e.target.value)}
+                                    className="flex-1 text-sm font-semibold bg-[#F4F4F4] border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-red-400"
                                     style={{ color: DARK }}
                                  />
-                              ) : (
-                                 <p
-                                    className="text-sm font-bold break-words"
+                                 <input
+                                    type="time"
+                                    value={editTime}
+                                    onChange={(e) => setEditTime(e.target.value)}
+                                    className="w-28 text-sm font-semibold bg-[#F4F4F4] border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-red-400"
                                     style={{ color: DARK }}
-                                 >
-                                    {value}
-                                 </p>
-                              )}
+                                 />
+                              </div>
+                           ) : (
+                              <p
+                                 className="text-sm font-bold break-words"
+                                 style={{ color: DARK }}
+                              >
+                                 {campaign.scheduled_at
+                                    ? fmtDateTime(campaign.scheduled_at)
+                                    : 'Not scheduled'}
+                              </p>
+                           )}
+                        </div>
+                     </div>
+                  </div>
+
+                  {/* Channels */}
+                  <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                     <div className="flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-green-50">
+                           <Check size={16} className="text-green-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                           <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">
+                              Channels
+                           </p>
+                           <div className="space-y-2">
+                              {CHANNEL_ORDER.map((ch, i) => {
+                                 const meta = CHANNEL_META[ch];
+                                 const Icon = meta.icon;
+                                 const style = channelIconStyle(i);
+                                 const isActive = editing
+                                    ? editChannels.includes(ch)
+                                    : campaign.channels.includes(ch);
+                                 return (
+                                    <div key={ch} className="flex items-center gap-3">
+                                       <div
+                                          className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${style.bg}`}
+                                       >
+                                          <Icon size={13} className={style.text} />
+                                       </div>
+                                       <span
+                                          className="text-sm font-bold flex-1"
+                                          style={{ color: DARK }}
+                                       >
+                                          {meta.name}
+                                       </span>
+                                       {editing ? (
+                                          <label
+                                             className="flex items-center cursor-pointer"
+                                             onClick={() => toggleChannel(ch)}
+                                          >
+                                             <div
+                                                className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isActive ? 'bg-red-500 border-red-500' : 'border-slate-300 bg-white'}`}
+                                             >
+                                                {isActive && (
+                                                   <Check
+                                                      size={10}
+                                                      className="text-white"
+                                                   />
+                                                )}
+                                             </div>
+                                          </label>
+                                       ) : (
+                                          isActive && (
+                                             <Check
+                                                size={14}
+                                                className="text-green-500 flex-shrink-0"
+                                             />
+                                          )
+                                       )}
+                                    </div>
+                                 );
+                              })}
                            </div>
                         </div>
                      </div>
-                  ))}
+                  </div>
                </div>
 
+               {/* Right column — audience */}
                <div className="space-y-4">
                   <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
                      <div className="flex items-center gap-2 mb-3">
                         <Users size={15} style={{ color: DARK }} />
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">
-                           Recommended Audience
+                           Audience
                         </p>
                      </div>
-                     <div className="flex flex-wrap gap-2">
-                        {audience.length === 0 && (
-                           <span className="text-xs text-slate-400">
-                              No targets selected
-                           </span>
-                        )}
-                        {audience.map((a) => (
-                           <span
-                              key={a}
-                              className="px-2.5 py-1 border text-xs font-bold rounded-lg"
-                              style={{
-                                 backgroundColor: `${DARK}08`,
-                                 borderColor: `${DARK}20`,
-                                 color: DARK,
-                              }}
-                           >
-                              {a}
-                           </span>
-                        ))}
-                     </div>
-                  </div>
-                  <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-                     <div className="flex items-center gap-2 mb-3">
-                        <Radio size={15} style={{ color: DARK }} />
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">
-                           Recommended Channels
-                        </p>
-                     </div>
-                     <div className="space-y-2.5">
-                        {channelRows.length === 0 && (
-                           <span className="text-xs text-slate-400">
-                              No channels selected
-                           </span>
-                        )}
-                        {channelRows.map(({ icon: Icon, name }, i) => (
-                           <div key={name} className="flex items-center gap-3">
-                              <div
-                                 className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                                    ['bg-indigo-50', 'bg-blue-50', 'bg-green-50'][i % 3]
-                                 }`}
-                              >
-                                 <Icon
-                                    size={13}
-                                    className={
-                                       [
-                                          'text-indigo-600',
-                                          'text-blue-600',
-                                          'text-green-600',
-                                       ][i % 3]
-                                    }
-                                 />
+                     {editing ? (
+                        <TargetingEditor
+                           value={editTargeting}
+                           onChange={setEditTargeting}
+                           targetContext={targetContext}
+                        />
+                     ) : campaign.targeting.length === 0 ? (
+                        <p className="text-xs text-slate-400">No targets selected</p>
+                     ) : (
+                        <div className="space-y-3">
+                           {campaign.targeting.map((cell, cellIdx) => (
+                              <div key={cellIdx}>
+                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                                    Group {cellIdx + 1}
+                                 </p>
+                                 <div className="flex flex-wrap gap-1.5">
+                                    {cell.map((target) => (
+                                       <span
+                                          key={`${target.type}-${target.name}`}
+                                          className="px-2.5 py-1 border text-xs font-bold rounded-lg"
+                                          style={{
+                                             backgroundColor: `${DARK}08`,
+                                             borderColor: `${DARK}20`,
+                                             color: DARK,
+                                          }}
+                                       >
+                                          {target.name}
+                                       </span>
+                                    ))}
+                                 </div>
                               </div>
-                              <div className="flex-1 min-w-0">
-                                 <span
-                                    className="text-sm font-bold"
-                                    style={{ color: DARK }}
-                                 >
-                                    {name}
-                                 </span>
-                              </div>
-                              <Check size={14} className="text-green-500 flex-shrink-0" />
-                           </div>
-                        ))}
-                     </div>
+                           ))}
+                        </div>
+                     )}
                   </div>
                </div>
             </div>
 
+            {/* Bottom actions */}
             <div className="flex gap-3">
-               {(campaign.status === 'draft' || campaign.status === 'scheduled') && (
+               {isCampaignActionable(campaign) && (
                   <>
-                     <button
-                        onClick={() => navigate(`/campaign/${id}/preview`)}
-                        className="btn-primary flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-bold"
-                     >
-                        Use These Recommendations
-                     </button>
-                     <button
-                        onClick={() => setEditing((e) => !e)}
-                        className="flex items-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-bold border transition-colors"
-                        style={
-                           editing
-                              ? { backgroundColor: DARK, color: 'white', borderColor: DARK }
-                              : { borderColor: '#E2E8F0', color: DARK }
-                        }
-                     >
-                        <Pencil size={14} /> {editing ? 'Done' : 'Edit'}
-                     </button>
+                     {editing ? (
+                        <>
+                           <button
+                              onClick={handleSave}
+                              disabled={saving}
+                              className="btn-primary flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-bold disabled:opacity-40"
+                           >
+                              {saving ? 'Saving...' : 'Done'}
+                           </button>
+                           <button
+                              onClick={() => setEditing(false)}
+                              className="flex items-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-bold border transition-colors"
+                              style={{ borderColor: '#E2E8F0', color: DARK }}
+                           >
+                              Cancel
+                           </button>
+                        </>
+                     ) : (
+                        <>
+                           <button
+                              onClick={() => navigate(`/campaign/${id}/preview`)}
+                              className="btn-primary flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-bold"
+                           >
+                              Use These Recommendations
+                           </button>
+                           <button
+                              onClick={startEditing}
+                              className="flex items-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-bold border transition-colors"
+                              style={{ borderColor: '#E2E8F0', color: DARK }}
+                           >
+                              <Pencil size={14} /> Edit
+                           </button>
+                        </>
+                     )}
                   </>
                )}
             </div>
