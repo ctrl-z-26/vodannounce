@@ -1,49 +1,34 @@
-import type {
-    Request,
-    Response,
-    NextFunction,
-} from 'express';
+import type { Request, Response, NextFunction } from 'express';
 
 import { supabase } from '@shared/supabase/supabase.js';
 import type { ProfileRole } from '@root-shared/types/campaign.js';
+import { UnauthorizedError, ForbiddenError } from '@shared/error/index.js';
 
 export async function requireAuth(
     req: Request,
-    res: Response,
+    _res: Response,
     next: NextFunction,
 ): Promise<void> {
     const authHeader = req.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
-        res.status(401).json({
-            error: 'Authorization token missing',
-        });
-        return;
+        throw new UnauthorizedError('Authorization token missing');
     }
 
     const accessToken = authHeader.substring(7);
 
-    try {
-        const {
-            data: { user },
-            error,
-        } = await supabase.auth.getUser(accessToken);
+    const {
+        data: { user },
+        error,
+    } = await supabase.auth.getUser(accessToken);
 
-        if (error || !user) {
-            res.status(401).json({
-                error: 'Invalid or expired access token',
-            });
-            return;
-        }
-
-        res.locals.userId = user.id;
-
-        next();
-    } catch {
-        res.status(401).json({
-            error: 'Authentication failed',
-        });
+    if (error || !user) {
+        throw new UnauthorizedError('Invalid or expired access token');
     }
+
+    _res.locals.userId = user.id;
+
+    next();
 }
 
 /**
@@ -59,8 +44,7 @@ export function requireRole(...allowedRoles: ProfileRole[]) {
     return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         const userId = res.locals.userId as string | undefined;
         if (!userId) {
-            res.status(401).json({ error: 'Authentication required' });
-            return;
+            throw new UnauthorizedError('Authentication required');
         }
 
         const { data, error } = await supabase
@@ -70,13 +54,11 @@ export function requireRole(...allowedRoles: ProfileRole[]) {
             .single();
 
         if (error || !data) {
-            res.status(403).json({ error: 'Forbidden: profile not found' });
-            return;
+            throw new ForbiddenError('Forbidden: profile not found');
         }
 
         if (!allowedRoles.includes(data.role)) {
-            res.status(403).json({ error: 'Forbidden: insufficient role' });
-            return;
+            throw new ForbiddenError('Forbidden: insufficient role');
         }
 
         res.locals.userRole = data.role;

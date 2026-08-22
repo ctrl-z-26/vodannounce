@@ -8,6 +8,7 @@ import type {
 import { analyzeAnnouncement, repairTargets } from '../llm/index.js';
 import type { CampaignAnalysis } from '../llm/index.js';
 import { findUnknownTargets } from './campaigns.utils.js';
+import { BadRequestError, NotFoundError } from '@shared/error/index.js';
 
 /** Number of AI target-repair attempts allowed after the initial analysis. */
 const MAX_REPAIRS = 2;
@@ -20,7 +21,8 @@ async function fetchTargetContext(): Promise<TargetContext> {
         supabase.from('groups').select('name'),
         supabase.from('locations').select('name'),
     ]);
-    if (groupsResult.error) throw new Error(`Failed to fetch groups: ${groupsResult.error.message}`);
+    if (groupsResult.error)
+        throw new Error(`Failed to fetch groups: ${groupsResult.error.message}`);
     if (locationsResult.error) {
         throw new Error(`Failed to fetch locations: ${locationsResult.error.message}`);
     }
@@ -48,7 +50,10 @@ export async function analyzeAndCreateDraft(
     userId: string | null,
 ): Promise<Campaign> {
     const targetContext = await fetchTargetContext();
-    let analysis: CampaignAnalysis = await analyzeAnnouncement(request.prompt, targetContext);
+    let analysis: CampaignAnalysis = await analyzeAnnouncement(
+        request.prompt,
+        targetContext,
+    );
 
     for (let attempt = 0; attempt < MAX_REPAIRS; attempt += 1) {
         const unknown = findUnknownTargets(
@@ -57,7 +62,12 @@ export async function analyzeAndCreateDraft(
             targetContext.locations,
         );
         if (unknown.length === 0) break;
-        const targets = await repairTargets(request.prompt, analysis, unknown, targetContext);
+        const targets = await repairTargets(
+            request.prompt,
+            analysis,
+            unknown,
+            targetContext,
+        );
         analysis = { ...analysis, targets };
     }
 
@@ -67,7 +77,7 @@ export async function analyzeAndCreateDraft(
         targetContext.locations,
     );
     if (remaining.length > 0) {
-        throw new Error(
+        throw new BadRequestError(
             `AI produced unknown targets after ${MAX_REPAIRS} repair attempts: ${remaining.join(', ')}`,
         );
     }
@@ -82,8 +92,13 @@ export async function analyzeAndCreateDraft(
         teams_channel_ids: null,
         created_by: userId,
     };
-    const { data, error } = await supabase.from('announcements').insert(draft).select().single();
-    if (error || !data) throw new Error(`Failed to create draft announcement: ${error?.message}`);
+    const { data, error } = await supabase
+        .from('announcements')
+        .insert(draft)
+        .select()
+        .single();
+    if (error || !data)
+        throw new Error(`Failed to create draft announcement: ${error?.message}`);
 
     const log: Database['public']['Tables']['announcement_logs']['Insert'] = {
         announcement_id: data.id,
@@ -121,14 +136,16 @@ export async function getCampaignById(id: string): Promise<Campaign> {
         .select('*')
         .eq('id', id)
         .single();
-    if (error || !data) throw new Error(`Campaign not found: ${error?.message ?? id}`);
+    if (error || !data) throw new NotFoundError('Campaign');
     return data as Campaign;
 }
 
 /**
  * Returns all recipient records for a given announcement.
  */
-export async function getCampaignRecipients(campaignId: string): Promise<Database['public']['Tables']['announcement_recipients']['Row'][]> {
+export async function getCampaignRecipients(
+    campaignId: string,
+): Promise<Database['public']['Tables']['announcement_recipients']['Row'][]> {
     const { data, error } = await supabase
         .from('announcement_recipients')
         .select('*')
