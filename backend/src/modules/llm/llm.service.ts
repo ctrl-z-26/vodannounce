@@ -68,9 +68,12 @@ If you are not yet a GitHub Copilot user on GHEC, please follow the onboarding g
  * names Gemini may reference as targets.
  */
 function buildSystemInstruction(targetContext: TargetContext): string {
+    const groupList = targetContext.groups
+        .map((g) => (g.description ? `${g.name} (${g.description})` : g.name))
+        .join(', ');
     return `${SYSTEM_INSTRUCTION}
 
-Groups: ${targetContext.groups.join(', ') || '(none)'}
+Groups: ${groupList || '(none)'}
 Locations: ${targetContext.locations.join(', ') || '(none)'}`;
 }
 

@@ -42,10 +42,10 @@ export function TargetingEditor({
          {targetContext.groups.length > 0 && (
             <optgroup label="Groups">
                {targetContext.groups
-                  .filter((n) => !cellUsedKeys.has(`group:${n}`))
-                  .map((n) => (
-                     <option key={`group:${n}`} value={`group:${n}`}>
-                        {n}
+                  .filter((g) => !cellUsedKeys.has(`group:${g.name}`))
+                  .map((g) => (
+                     <option key={`group:${g.name}`} value={`group:${g.name}`}>
+                        {g.name}
                      </option>
                   ))}
             </optgroup>
@@ -77,26 +77,33 @@ export function TargetingEditor({
                      className="flex flex-wrap items-center gap-1.5 p-2.5 rounded-xl border"
                      style={{ borderColor: `${DARK}20`, backgroundColor: `${DARK}04` }}
                   >
-                     {cell.map((target, targetIdx) => (
-                        <span
-                           key={`${target.type}-${target.name}`}
-                           className="inline-flex items-center gap-1 px-2 py-0.5 border text-xs font-bold rounded-lg"
-                           style={{
-                              backgroundColor: `${DARK}08`,
-                              borderColor: `${DARK}20`,
-                              color: DARK,
-                           }}
-                        >
-                           {target.name}
-                           <button
-                              type="button"
-                              onClick={() => removeTarget(cellIdx, targetIdx)}
-                              className="text-slate-400 hover:text-red-500 transition-colors"
+                     {cell.map((target, targetIdx) => {
+                        const groupMeta =
+                           target.type === 'group'
+                              ? targetContext.groups.find((g) => g.name === target.name)
+                              : undefined;
+                        return (
+                           <span
+                              key={`${target.type}-${target.name}`}
+                              title={groupMeta?.description ?? undefined}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 border text-xs font-bold rounded-lg"
+                              style={{
+                                 backgroundColor: `${DARK}08`,
+                                 borderColor: `${DARK}20`,
+                                 color: DARK,
+                              }}
                            >
-                              <X size={10} />
-                           </button>
-                        </span>
-                     ))}
+                              {target.name}
+                              <button
+                                 type="button"
+                                 onClick={() => removeTarget(cellIdx, targetIdx)}
+                                 className="text-slate-400 hover:text-red-500 transition-colors"
+                              >
+                                 <X size={10} />
+                              </button>
+                           </span>
+                        );
+                     })}
                      <select
                         value=""
                         onChange={(e) => selectAdd(cellIdx, e)}
