@@ -1,5 +1,8 @@
-// Announcement enums — mirror the values in
+// Announcement enums, mirror the values in
 // Database["public"]["Enums"] (backend/src/shared/supabase/database.types.ts)
+
+/** User role in the system, mirrors the `profile_role` DB enum. */
+export type ProfileRole = 'admin' | 'sender' | 'employee';
 
 /** Delivery channel for an announcement. */
 export type AnnouncementChannel = 'email' | 'teams' | 'mobile_push';
@@ -17,10 +20,10 @@ export type DeliveryStatus = 'pending' | 'sent' | 'delivered' | 'failed';
 export type TargetType = 'group' | 'location';
 
 /** A single auditable target: a named group or a physical location. */
-export interface Target {
+export type Target = {
     type: TargetType;
     name: string;
-}
+};
 
 /**
  * One AND cell of a targeting expression: a set of targets that must all match.
@@ -34,7 +37,7 @@ export type TargetingCell = Target[];
  *
  * A physical location target is expanded to its footprint groups at
  * resolution time, and the whole expression is stored as the
- * `announcements.targeting` jsonb column exactly as the AI outputs it — the
+ * `announcements.targeting` jsonb column exactly as the AI outputs it, the
  * single target shape shared between backend and frontend.
  *
  * @remarks
@@ -60,8 +63,8 @@ export type TargetContext = {
 export interface AnalyzeAnnouncementRequest {
     /** The manager's natural-language announcement draft. */
     prompt: string;
-    /** ISO-8601 date/time the announcement is scheduled for. */
-    scheduledAt: string;
+    /** ISO-8601 date/time the announcement is scheduled for, or null for immediate dispatch. */
+    scheduledAt: string | null;
 }
 
 /**
@@ -102,3 +105,25 @@ export interface CampaignRecipient {
     read_at: string | null;
     created_at: string;
 }
+
+/**
+ * Partial campaign update payload for PATCH /api/campaigns/:id.
+ *
+ * Restricts mutable fields to those a manager can edit during the
+ * plan and preview stages. System-managed fields (id, status,
+ * created_at, sent_at, etc.) are excluded.
+ */
+export type UpdateCampaignRequest = Partial<
+    Pick<
+        Campaign,
+        | 'title'
+        | 'priority'
+        | 'channels'
+        | 'targeting'
+        | 'scheduled_at'
+        | 'teams_message'
+        | 'email_subject'
+        | 'email_body'
+        | 'notification_text'
+    >
+>;
