@@ -3,6 +3,7 @@ import type { Database } from '@shared/supabase/database.types.js';
 import type {
     AnalyzeAnnouncementRequest,
     Campaign,
+    CampaignRecipient,
     TargetContext,
     TargetingExpression,
     UpdateCampaignRequest,
@@ -142,17 +143,39 @@ export async function getCampaignById(id: string): Promise<Campaign> {
 }
 
 /**
- * Returns all recipient records for a given announcement.
+ * Returns all recipient records for a given announcement, enriched with
+ * the user's display name and group memberships (departments).
  */
 export async function getCampaignRecipients(
     campaignId: string,
-): Promise<Database['public']['Tables']['announcement_recipients']['Row'][]> {
-    const { data, error } = await supabase
+): Promise<CampaignRecipient[]> {
+    const { data: recipients, error } = await supabase
         .from('announcement_recipients')
-        .select('*')
+        .select('*, profiles(full_name)')
         .eq('announcement_id', campaignId);
     if (error) throw new Error(`Failed to fetch recipients: ${error.message}`);
-    return data ?? [];
+    if (!recipients?.length) return [];
+
+    const userIds = recipients.map((r) => r.user_id);
+    const { data: memberships } = await supabase
+        .from('group_members')
+        .select('user_id, groups(name)')
+        .in('user_id', userIds);
+
+    const deptMap = new Map<string, string[]>();
+    for (const m of memberships ?? []) {
+        const name = (m.groups as { name: string } | null)?.name;
+        if (!name) continue;
+        const depts = deptMap.get(m.user_id) ?? [];
+        depts.push(name);
+        deptMap.set(m.user_id, depts);
+    }
+
+    return recipients.map((r) => ({
+        ...r,
+        full_name: (r.profiles as { full_name: string | null } | null)?.full_name ?? null,
+        departments: deptMap.get(r.user_id) ?? [],
+    }));
 }
 
 /**

@@ -32,8 +32,8 @@ export default function WebLiveMonitoring() {
          .then((data: CampaignRecipient[]) =>
             setRecipients(
                data.map((r) => ({
-                  name: r.user_id,
-                  dept: '—',
+                  name: r.full_name ?? r.user_id,
+                  dept: r.departments.join(', ') || '—',
                   status: r.read_at ? 'acknowledged' : r.delivery_status,
                   time: fmtTime(r.delivered_at),
                })),

@@ -104,6 +104,10 @@ export interface CampaignRecipient {
     delivered_at: string | null;
     read_at: string | null;
     created_at: string;
+    /** User's display name from `profiles.full_name`. */
+    full_name: string | null;
+    /** Group names the user belongs to (via `group_members → groups`). */
+    departments: string[];
 }
 
 /**

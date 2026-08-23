@@ -25,4 +25,6 @@ type _campaignFieldsLock = Expect<
     AssertEqual<Omit<Campaign, 'targeting'>, Omit<AnnouncementsRow, 'targeting'>>
 >;
 type _campaignTargetingLock = Expect<AssertEqual<Campaign['targeting'], TargetingExpression>>;
-type _recipientLocks = Expect<AssertEqual<CampaignRecipient, RecipientsRow>>;
+type _recipientLocks = Expect<
+    AssertEqual<Omit<CampaignRecipient, 'full_name' | 'departments'>, RecipientsRow>
+>;
