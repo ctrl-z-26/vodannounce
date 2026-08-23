@@ -484,6 +484,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      resolve_audience: { Args: { targeting: Json }; Returns: string[] }
     }
     Enums: {
       announcement_channel: "email" | "teams" | "mobile_push"

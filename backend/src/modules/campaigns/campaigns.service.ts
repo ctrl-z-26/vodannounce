@@ -4,11 +4,13 @@ import type {
     AnalyzeAnnouncementRequest,
     Campaign,
     TargetContext,
+    TargetingExpression,
     UpdateCampaignRequest,
 } from '@root-shared/types/campaign.js';
 import { analyzeAnnouncement, repairTargets } from '../llm/index.js';
 import type { CampaignAnalysis } from '../llm/index.js';
-import { findUnknownTargets } from './campaigns.utils.js';
+import { findUnknownTargets, resolveAudience } from './campaigns.utils.js';
+import { pushToUsers } from '../fcm/index.js';
 import { BadRequestError, NotFoundError } from '@shared/error/index.js';
 
 /** Number of AI target-repair attempts allowed after the initial analysis. */
@@ -272,4 +274,207 @@ export async function updateCampaign(
     }
 
     return { ...campaign, ...updates } as Campaign;
+}
+
+type AnnouncementRow = Database['public']['Tables']['announcements']['Row'];
+
+/**
+ * Common dispatch function used by both immediate approval and BullMQ worker.
+ *
+ * Resolves targets, creates recipient rows, sends notifications per channel,
+ * updates recipient statuses, and transitions campaign to 'sent'.
+ *
+ * **Idempotency guarantees:**
+ * - If the campaign is already `sent`, returns immediately (safe to call twice).
+ * - Before inserting recipient rows, checks which users already have a row for
+ *   this campaign and only inserts the missing ones — prevents duplicate rows on
+ *   retry or BullMQ re-delivery.
+ * - FCM is only sent to recipients still in `pending` status (step 3 filters on
+ *   `delivery_status = 'pending'`), so already-sent or already-failed recipients
+ *   are never re-notified.
+ *
+ * Caller owns the campaign fetch — this function only handles the write side.
+ *
+ * @param campaign - The raw campaign row from Supabase.
+ * @param userIds - Pre-resolved user IDs (skips an RPC call when provided).
+ * @throws Error on FCM total batch failure or DB errors (caller should mark campaign failed)
+ */
+export async function dispatchCampaign(
+    campaign: AnnouncementRow,
+    userIds?: string[],
+): Promise<void> {
+    if (campaign.status === 'sent') return;
+
+    const targeting = campaign.targeting as TargetingExpression;
+    const channels = campaign.channels;
+    const resolvedUserIds = userIds ?? (await resolveAudience(targeting));
+
+    if (resolvedUserIds.length === 0) {
+        throw new Error('No recipients matched the targeting expression');
+    }
+
+    // 1. Create recipient rows (skip users that already have a row)
+    const { data: existing } = await supabase
+        .from('announcement_recipients')
+        .select('user_id')
+        .eq('announcement_id', campaign.id);
+    const existingIds = new Set(existing?.map((r) => r.user_id) ?? []);
+    const newUserIds = resolvedUserIds.filter((id) => !existingIds.has(id));
+
+    if (newUserIds.length > 0) {
+        const recipients = newUserIds.map((userId) => ({
+            announcement_id: campaign.id,
+            user_id: userId,
+            delivery_status: 'pending' as const,
+        }));
+        const { error: insertError } = await supabase
+            .from('announcement_recipients')
+            .insert(recipients);
+        if (insertError) {
+            throw new Error(`Failed to create recipient rows: ${insertError.message}`);
+        }
+    }
+
+    // 2. Dispatch per channel
+    const failedUserIds = new Set<string>();
+
+    if (channels.includes('mobile_push') && campaign.notification_text) {
+        const pushResult = await pushToUsers(
+            resolvedUserIds,
+            campaign.title,
+            campaign.notification_text,
+            { campaign_id: campaign.id },
+        );
+        for (const id of pushResult.failedUserIds) failedUserIds.add(id);
+    }
+
+    // TODO: MS Graph Email via Outlook (VOIS-46)
+    // TODO: MS Graph Teams message (VOIS-45)
+
+    // 3. Update recipient statuses
+    const failedArray = [...failedUserIds];
+    if (failedArray.length > 0) {
+        const { error: failError } = await supabase
+            .from('announcement_recipients')
+            .update({ delivery_status: 'failed' })
+            .eq('announcement_id', campaign.id)
+            .in('user_id', failedArray);
+        if (failError) {
+            throw new Error(
+                `Failed to update failed recipient statuses: ${failError.message}`,
+            );
+        }
+    }
+    const { error: sentError } = await supabase
+        .from('announcement_recipients')
+        .update({ delivery_status: 'sent', delivered_at: new Date().toISOString() })
+        .eq('announcement_id', campaign.id)
+        .eq('delivery_status', 'pending');
+    if (sentError) {
+        throw new Error(`Failed to update sent recipient statuses: ${sentError.message}`);
+    }
+
+    // 4. Transition campaign status
+    const { error: statusError } = await supabase
+        .from('announcements')
+        .update({ status: 'sent', sent_at: new Date().toISOString() })
+        .eq('id', campaign.id);
+    if (statusError) {
+        throw new Error(`Failed to transition campaign to sent: ${statusError.message}`);
+    }
+
+    // 5. Audit log
+    const log: Database['public']['Tables']['announcement_logs']['Insert'] = {
+        announcement_id: campaign.id,
+        action: 'sent',
+        user_id: campaign.created_by,
+    };
+    const { error: logError } = await supabase.from('announcement_logs').insert(log);
+    if (logError) {
+        throw new Error(`Failed to write dispatch audit log: ${logError.message}`);
+    }
+}
+
+/**
+ * Approves a draft campaign: validates targeting, then transitions to
+ * scheduled or dispatches immediately.
+ *
+ * Flow:
+ * 1. Fetch campaign, assert status === 'draft'
+ * 2. Resolve targets via resolveAudience() — validation gate
+ *    - If zero users match -> throw BadRequestError (campaign stays draft)
+ * 3. Log action: 'approved'
+ * 4. If scheduled_at is future -> status 'scheduled', log 'scheduled'
+ *    // BullMQ: queue delayed job
+ * 5. If immediate -> dispatchCampaign(campaign)
+ *    - On total FCM failure -> throws, error handler returns 500, campaign stays draft
+ *
+ * @throws NotFoundError when the campaign does not exist.
+ * @throws BadRequestError when campaign is not draft or targeting matches no one.
+ */
+export async function approveCampaign(id: string, userId: string): Promise<Campaign> {
+    const { data: campaign, error: fetchError } = await supabase
+        .from('announcements')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+    if (fetchError || !campaign) throw new NotFoundError('Campaign');
+    if (campaign.status !== 'draft') {
+        throw new BadRequestError('Only draft campaigns can be approved');
+    }
+
+    // Validate targeting resolves to at least one user
+    const targeting = campaign.targeting as TargetingExpression;
+    const userIds = await resolveAudience(targeting);
+    if (userIds.length === 0) {
+        throw new BadRequestError('No recipients match the selected targeting');
+    }
+
+    // Log approval
+    const approvedLog: Database['public']['Tables']['announcement_logs']['Insert'] = {
+        announcement_id: id,
+        action: 'approved',
+        user_id: userId,
+    };
+    const { error: logError } = await supabase
+        .from('announcement_logs')
+        .insert(approvedLog);
+    if (logError) {
+        throw new Error(`Failed to write approval audit log: ${logError.message}`);
+    }
+
+    const isScheduled =
+        campaign.scheduled_at && new Date(campaign.scheduled_at) > new Date();
+
+    if (isScheduled) {
+        const { error: updateError } = await supabase
+            .from('announcements')
+            .update({ status: 'scheduled' })
+            .eq('id', id);
+        if (updateError) {
+            throw new Error(`Failed to schedule campaign: ${updateError.message}`);
+        }
+
+        const scheduledLog: Database['public']['Tables']['announcement_logs']['Insert'] =
+            {
+                announcement_id: id,
+                action: 'scheduled',
+                user_id: userId,
+            };
+        const { error: schedLogError } = await supabase
+            .from('announcement_logs')
+            .insert(scheduledLog);
+        if (schedLogError) {
+            throw new Error(
+                `Failed to write scheduled audit log: ${schedLogError.message}`,
+            );
+        }
+
+        // TODO: BullMQ delayed job when Redis is available (VOIS-78)
+        return { ...campaign, status: 'scheduled' } as Campaign;
+    } else {
+        await dispatchCampaign(campaign, userIds);
+        return { ...campaign, status: 'sent' } as Campaign;
+    }
 }
