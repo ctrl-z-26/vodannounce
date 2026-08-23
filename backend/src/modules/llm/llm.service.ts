@@ -28,22 +28,41 @@ Determine the audience from the announcement's NATURE, not from explicit group n
   (technical incident -> technical guilds, security threat -> security team).
 - targets is a list of cells. Each cell is an AND of its targets; cells are OR-ed together (union).
   Example: [["Security"], ["B1"]] means "Security group OR everyone at B1".
+- Each cell should target a cohesive audience unit. Use separate cells when
+  different groups need to know for different reasons. Example: a fire at
+  Main Street targets [Main Street] as one cell and [Security] as another —
+  they are targeted for different reasons (location-based vs. role-based).
+- Do NOT combine unrelated groups into a single cell. A single cell means
+  all targets must apply simultaneously — this rarely makes sense for more
+  than 2-3 closely related targets.
 
 - Avoid umbrella groups (Management, HR) by default. Include them only when the announcement's
   scope genuinely warrants it: HR for staff-facing operational changes (office closure, layoffs,
   policy), Management for high-impact or company-wide crises.
-- "All" targets every employee. Use it ONLY when the announcement is genuinely company-wide
-  (e.g., office closure, company-wide outage). Do NOT use "All" as a convenience when more
-  specific targets exist. "All" must always appear as a standalone cell — never ANDed nor ORed with
-  other targets. To target everyone at a location, use the location name on its own instead.
+- "All" targets every employee. Use it ONLY when the announcement is genuinely
+  relevant to every single employee (e.g., office closure, holiday, benefits change).
+  Do NOT use "All" for incidents that only affect a subset of the company — target
+  the specific groups instead. "All" must always appear as a standalone cell —
+  never ANDed nor ORed with other targets. To target everyone at a location,
+  use the location name on its own instead.
 - Impact drives management: localized or medium-urgency announcements usually do not include
   management; critical or company-wide ones may.
+- Err on the side of fewer targets. Over-targeting causes notification fatigue.
+  When deciding whether to include a group, ask: 'Would members of this group
+  need to take action or change behavior because of this announcement?'
+  If the answer is no, exclude them — even if the incident is critical.
+  Severity does not equal relevance.
+- A location target already expands to every group at that location — do not
+  redundantly add individual groups from that location.
 - Only use exact names from the provided groups/locations lists, correctly tagged by type.
   Deduplicate names.
+- Match targeting to the announcement's nature: location-based for physical
+  area issues, group-based for organizational audiences. Let the system
+  handle expansion — do not enumerate sub-targets manually.
 Common scenarios:
-- Physical issues (fire, network down, no place to reserve) -> the location plus security team and facilities.
-- Cyber security attacks -> guilds and the cyber security team.
-- Global incidents (e.g., GitHub down) -> guilds and market groups.
+- Physical issues (fire, network down, no place to reserve) → the location plus security team and facilities.
+- Cyber security attacks → guilds and the cyber security team.
+- Global incidents (e.g., GitHub down) → guilds and market groups.
 
 Reference email format (use for tone/structure only, do not overfit to this example):
 
@@ -68,9 +87,12 @@ If you are not yet a GitHub Copilot user on GHEC, please follow the onboarding g
  * names Gemini may reference as targets.
  */
 function buildSystemInstruction(targetContext: TargetContext): string {
+    const groupList = targetContext.groups
+        .map((g) => (g.description ? `${g.name} (${g.description})` : g.name))
+        .join(', ');
     return `${SYSTEM_INSTRUCTION}
 
-Groups: ${targetContext.groups.join(', ') || '(none)'}
+Groups: ${groupList || '(none)'}
 Locations: ${targetContext.locations.join(', ') || '(none)'}`;
 }
 
@@ -87,7 +109,7 @@ export async function analyzeAnnouncement(
     targetContext: TargetContext,
 ): Promise<CampaignAnalysis> {
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: env.GEMINI_MODEL,
         contents: `Analyze this announcement prompt:\n\n"${promptText}"`,
         config: {
             systemInstruction: buildSystemInstruction(targetContext),
@@ -127,7 +149,7 @@ export async function repairTargets(
     targetContext: TargetContext,
 ): Promise<TargetingExpression> {
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash-lite',
         contents: [
             {
                 role: 'user',

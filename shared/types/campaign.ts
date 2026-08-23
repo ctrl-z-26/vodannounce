@@ -51,7 +51,7 @@ export type TargetingExpression = TargetingCell[];
 
 /** The exact group/location names an analyze call may reference. */
 export type TargetContext = {
-    groups: string[];
+    groups: { name: string; description: string | null }[];
     locations: string[];
 };
 

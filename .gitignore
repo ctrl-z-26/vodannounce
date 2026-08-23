@@ -49,3 +49,6 @@ yarn-debug.log*
 
 # Nx
 .nx/
+
+# Supabase CLI cache
+backend/supabase/.temp/
