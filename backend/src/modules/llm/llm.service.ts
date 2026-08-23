@@ -109,7 +109,7 @@ export async function analyzeAnnouncement(
     targetContext: TargetContext,
 ): Promise<CampaignAnalysis> {
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: env.GEMINI_MODEL,
         contents: `Analyze this announcement prompt:\n\n"${promptText}"`,
         config: {
             systemInstruction: buildSystemInstruction(targetContext),
