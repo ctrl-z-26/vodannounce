@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 
 import {
   IonButton,
@@ -6,22 +6,19 @@ import {
   IonIcon,
   IonPage,
   IonSpinner,
-} from '@ionic/react';
+} from "@ionic/react";
 
-import { logoGoogle } from 'ionicons/icons';
+import { logoGoogle } from "ionicons/icons";
 
-import { signInWithGoogle } from '../services/auth.service';
-
-import './Login.css';
-
+import { signInWithGoogle } from "../services/auth.service";
+import { useHistory } from "react-router-dom";
+import "./Login.css";
 
 const Login: React.FC = () => {
-
+  const history = useHistory();
   const [loading, setLoading] = useState(false);
 
-  const [errorMessage, setErrorMessage] =
-    useState('');
-
+  const [errorMessage, setErrorMessage] = useState("");
 
   /*
    * ----------------------------------------
@@ -30,16 +27,12 @@ const Login: React.FC = () => {
    */
 
   const handleGoogleSignIn = async () => {
-
     try {
-
       setLoading(true);
 
-      setErrorMessage('');
-
+      setErrorMessage("");
 
       await signInWithGoogle();
-
 
       /*
        * No navigation is required here.
@@ -58,26 +51,14 @@ const Login: React.FC = () => {
        *   ↓
        * /login redirects to /home
        */
-
     } catch (error) {
+      console.error("Google sign-in error:", error);
 
-      console.error(
-        'Google sign-in error:',
-        error
-      );
-
-
-      setErrorMessage(
-        'Unable to sign in with Google. Please try again.'
-      );
-
+      setErrorMessage("Unable to sign in with Google. Please try again.");
 
       setLoading(false);
-
     }
-
   };
-
 
   /*
    * ----------------------------------------
@@ -86,57 +67,32 @@ const Login: React.FC = () => {
    */
 
   return (
-
     <IonPage>
-
-      <IonContent
-        className="login-content"
-        fullscreen
-      >
-
+      <IonContent className="login-content" fullscreen>
         <div className="login-container">
-
-
           {/* --------------------------------
               BRAND
           -------------------------------- */}
 
           <div className="login-brand">
-
             <div className="login-logo">
-
-              <div
-                className="login-logo-ring"
-              />
-
+              <div className="login-logo-ring" />
             </div>
 
+            <h1 className="login-title">Vodannounce</h1>
 
-            <h1 className="login-title">
-              Vodannounce
-            </h1>
-
-
-            <p className="login-subtitle">
-              VOIS EMPLOYEE PORTAL
-            </p>
-
+            <p className="login-subtitle">VOIS EMPLOYEE PORTAL</p>
           </div>
-
 
           {/* --------------------------------
               LOGIN CARD
           -------------------------------- */}
 
           <div className="login-card">
-
             <div className="login-sso">
-
               <p className="login-sso-hint">
-                Use your corporate account
-                to sign in securely.
+                Use your corporate account to sign in securely.
               </p>
-
 
               {/*
                 FUTURE:
@@ -158,7 +114,6 @@ const Login: React.FC = () => {
                 </IonButton>
               */}
 
-
               <IonButton
                 expand="block"
                 fill="outline"
@@ -167,76 +122,43 @@ const Login: React.FC = () => {
                 onClick={handleGoogleSignIn}
                 disabled={loading}
               >
-
                 {loading ? (
-
-                  <IonSpinner
-                    name="crescent"
-                  />
-
+                  <IonSpinner name="crescent" />
                 ) : (
-
                   <>
-                    <IonIcon
-                      icon={logoGoogle}
-                      slot="start"
-                    />
-
+                    <IonIcon icon={logoGoogle} slot="start" />
                     Continue with Google
                   </>
-
                 )}
-
               </IonButton>
 
+              <IonButton
+                expand="block"
+                fill="clear"
+                size="small"
+                onClick={() => history.push("/home")}
+              >
+                Skip to Home (Dev)
+              </IonButton>
 
               {/* Login error */}
 
-              {errorMessage && (
-
-                <p
-                  className="login-error"
-                >
-                  {errorMessage}
-                </p>
-
-              )}
-
+              {errorMessage && <p className="login-error">{errorMessage}</p>}
             </div>
-
           </div>
-
 
           {/* --------------------------------
               FOOTER
           -------------------------------- */}
 
           <p className="login-footer">
-
-            By signing in you agree to VOIS{' '}
-
-            <a href="#">
-              Terms of Service
-            </a>
-
-            {' '}and{' '}
-
-            <a href="#">
-              Privacy Policy
-            </a>.
-
+            By signing in you agree to VOIS <a href="#">Terms of Service</a> and{" "}
+            <a href="#">Privacy Policy</a>.
           </p>
-
-
         </div>
-
       </IonContent>
-
     </IonPage>
-
   );
-
 };
-
 
 export default Login;
