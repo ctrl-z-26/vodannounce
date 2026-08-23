@@ -34,6 +34,7 @@
   background: #fff;
   border-radius: 12px;
   padding: 14px 16px;
+  cursor: pointer;
 }
 
 .notif-card-critical {
@@ -126,7 +127,7 @@
   color: #e60000;
 }
 
-.notif-status-badge.acknowledged {
+.notif-status-badge.read {
   background: #e0f5e9;
   color: #1f9254;
 }

@@ -75,9 +75,11 @@ const Login: React.FC = () => {
           -------------------------------- */}
 
           <div className="login-brand">
-            <div className="login-logo">
-              <div className="login-logo-ring" />
-            </div>
+            <img
+              src="/vodannounce.svg"
+              alt="Vodannounce"
+              className="login-logo-img"
+            />
 
             <h1 className="login-title">Vodannounce</h1>
 
