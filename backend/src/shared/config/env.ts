@@ -26,6 +26,27 @@ export const envSchema = z.object({
                 return z.NEVER;
             }
         }),
+
+    AZURE_TENANT_ID: z
+        .string()
+        .min(1, 'Azure Tenant ID is required'),
+
+    AZURE_CLIENT_ID: z
+        .string()
+        .min(1, 'Azure Client ID is required'),
+
+    AZURE_CLIENT_SECRET: z
+        .string()
+        .min(1, 'Azure Client Secret is required'),
+
+    TEAMS_TEST_TEAM_ID: z
+        .string()
+        .min(1, 'Teams test Team ID is required'),
+
+    TEAMS_TEST_CHANNEL_ID: z
+        .string()
+        .min(1, 'Teams test Channel ID is required'),
+
 });
 
 const envParse = envSchema.safeParse(process.env);
