@@ -5,6 +5,7 @@ export default defineConfig({
         include: ['src/**/*.test.ts'],
         env: {
             PORT: '3000',
+            GEMINI_API_KEY: 'test-key',
             SUPABASE_URL: 'https://supabase.co',
             SUPABASE_SERVICE_ROLE_KEY: 'mock-service-role-key',
             FCM_SERVICE_ACCOUNT_JSON: JSON.stringify({

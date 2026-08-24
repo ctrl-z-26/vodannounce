@@ -5,6 +5,7 @@ describe('Environment Variables Schema Validation', () => {
     it('should successfully pass with valid parameters and convert PORT to a number', () => {
         const validEnv = {
             PORT: '4000',
+            GEMINI_API_KEY: 'test-key',
             SUPABASE_URL: 'https://supabase.co',
             SUPABASE_SERVICE_ROLE_KEY: 'secret-key',
             FCM_SERVICE_ACCOUNT_JSON: JSON.stringify({
@@ -17,8 +18,27 @@ describe('Environment Variables Schema Validation', () => {
 
         expect(result.success).toBe(true);
         if (result.success) {
-            expect(result.data.PORT).toBe(4000); // Verifies string to number conversion
-            expect(typeof result.data.FCM_SERVICE_ACCOUNT_JSON).toBe('object'); // Verifies JSON parsing
+            expect(result.data.PORT).toBe(4000);
+            expect(result.data.GEMINI_MODEL).toBe('gemini-2.5-flash'); // default value
+            expect(typeof result.data.FCM_SERVICE_ACCOUNT_JSON).toBe('object');
+        }
+    });
+
+    it('should allow overriding GEMINI_MODEL', () => {
+        const envWithModel = {
+            PORT: '3000',
+            GEMINI_API_KEY: 'test-key',
+            GEMINI_MODEL: 'gemini-3.5-flash-lite',
+            SUPABASE_URL: 'https://supabase.co',
+            SUPABASE_SERVICE_ROLE_KEY: 'secret-key',
+            FCM_SERVICE_ACCOUNT_JSON: '{}',
+        };
+
+        const result = envSchema.safeParse(envWithModel);
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+            expect(result.data.GEMINI_MODEL).toBe('gemini-3.5-flash-lite');
         }
     });
 

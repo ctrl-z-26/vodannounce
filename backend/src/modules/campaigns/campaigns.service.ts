@@ -19,7 +19,7 @@ const MAX_REPAIRS = 2;
  */
 export async function getTargetContext(): Promise<TargetContext> {
     const [groupsResult, locationsResult] = await Promise.all([
-        supabase.from('groups').select('name'),
+        supabase.from('groups').select('name, description'),
         supabase.from('locations').select('name'),
     ]);
     if (groupsResult.error)
@@ -28,7 +28,13 @@ export async function getTargetContext(): Promise<TargetContext> {
         throw new Error(`Failed to fetch locations: ${locationsResult.error.message}`);
     }
     return {
-        groups: ['All', ...groupsResult.data.map((row) => row.name)],
+        groups: [
+            { name: 'All', description: 'All employees' },
+            ...groupsResult.data.map((row) => ({
+                name: row.name,
+                description: row.description,
+            })),
+        ],
         locations: locationsResult.data.map((row) => row.name),
     };
 }
@@ -57,11 +63,7 @@ export async function analyzeAndCreateDraft(
     );
 
     for (let attempt = 0; attempt < MAX_REPAIRS; attempt += 1) {
-        const unknown = findUnknownTargets(
-            analysis.targets,
-            targetContext.groups,
-            targetContext.locations,
-        );
+        const unknown = findUnknownTargets(analysis.targets, targetContext);
         if (unknown.length === 0) break;
         const targets = await repairTargets(
             request.prompt,
@@ -72,11 +74,7 @@ export async function analyzeAndCreateDraft(
         analysis = { ...analysis, targets };
     }
 
-    const remaining = findUnknownTargets(
-        analysis.targets,
-        targetContext.groups,
-        targetContext.locations,
-    );
+    const remaining = findUnknownTargets(analysis.targets, targetContext);
     if (remaining.length > 0) {
         throw new BadRequestError(
             `AI produced unknown targets after ${MAX_REPAIRS} repair attempts: ${remaining.join(', ')}`,

@@ -1,5 +1,6 @@
 import { env } from '@shared/config/env.js';
 import express, { type Request, type Response } from 'express';
+
 import cors from 'cors';
 import { fcmRoutes } from './modules/fcm/index.js';
 import { campaignsRoutes } from './modules/campaigns/campaigns.routes.js';

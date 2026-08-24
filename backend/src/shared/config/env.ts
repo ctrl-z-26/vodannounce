@@ -8,6 +8,7 @@ export const envSchema = z.object({
         .transform((val) => parseInt(val, 10)),
 
     GEMINI_API_KEY: z.string().min(1, 'Google AI Studio API key is required'),
+    GEMINI_MODEL: z.string().default('gemini-2.5-flash'),
 
     SUPABASE_URL: z.url('Invalid Supabase URL format'),
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'Supabase service role key is required'),
