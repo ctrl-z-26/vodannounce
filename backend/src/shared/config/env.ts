@@ -46,6 +46,17 @@ export const envSchema = z.object({
     TEAMS_TEST_CHANNEL_ID: z
         .string()
         .min(1, 'Teams test Channel ID is required'),
+    TEAMS_SENDER_EMAIL: z
+        .string()
+        .email('Teams sender email must be valid'),
+
+    TEAMS_OAUTH_REDIRECT_URI: z
+        .string()
+        .url('Teams OAuth redirect URI must be valid'),
+
+    WEB_APP_URL: z
+        .string()
+        .url('Web app URL must be valid'),
 
 });
 

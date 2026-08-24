@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -238,6 +238,50 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_logs: {
+        Row: {
+          announcement_id: string
+          attempted_at: string
+          channel: Database["public"]["Enums"]["announcement_channel"]
+          completed_at: string | null
+          destination: string
+          error_message: string | null
+          id: string
+          provider_message_id: string | null
+          status: Database["public"]["Enums"]["delivery_status"]
+        }
+        Insert: {
+          announcement_id: string
+          attempted_at?: string
+          channel: Database["public"]["Enums"]["announcement_channel"]
+          completed_at?: string | null
+          destination: string
+          error_message?: string | null
+          id?: string
+          provider_message_id?: string | null
+          status?: Database["public"]["Enums"]["delivery_status"]
+        }
+        Update: {
+          announcement_id?: string
+          attempted_at?: string
+          channel?: Database["public"]["Enums"]["announcement_channel"]
+          completed_at?: string | null
+          destination?: string
+          error_message?: string | null
+          id?: string
+          provider_message_id?: string | null
+          status?: Database["public"]["Enums"]["delivery_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_logs_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
             referencedColumns: ["id"]
           },
         ]
@@ -484,6 +528,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      resolve_audience: { Args: { targeting: Json }; Returns: string[] }
     }
     Enums: {
       announcement_channel: "email" | "teams" | "mobile_push"

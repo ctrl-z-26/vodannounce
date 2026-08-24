@@ -52,33 +52,6 @@ export default defineConfig({
     },
   },
 
-  /*
-   * ------------------------------------------------
-   * HTML ENTRY POINTS
-   * ------------------------------------------------
-   *
-   * index.html
-   *   → Main Vodannounce React application
-   *
-   * redirect.html
-   *   → Microsoft/MSAL authentication callback page
-   */
-  build: {
-    rollupOptions: {
-      input: {
-        main: path.resolve(
-          __dirname,
-          'index.html',
-        ),
-
-        redirect: path.resolve(
-          __dirname,
-          'redirect.html',
-        ),
-      },
-    },
-  },
-
   // File types to support raw imports.
   // Never add .css, .tsx, or .ts files to this.
   assetsInclude: [

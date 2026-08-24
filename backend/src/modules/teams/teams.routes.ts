@@ -3,6 +3,9 @@ import {
 } from 'express';
 
 import {
+    handleTeamsOAuthCallback,
+    handleTeamsOAuthConnect,
+    handleTeamsSenderStatus,
     handleTestTeamsMessage,
 } from './teams.controller.js';
 
@@ -11,11 +14,26 @@ const router =
     Router();
 
 
+router.get(
+    '/oauth/connect',
+    handleTeamsOAuthConnect,
+);
+
+
+router.get(
+    '/oauth/callback',
+    handleTeamsOAuthCallback,
+);
+
+
+router.get(
+    '/sender/status',
+    handleTeamsSenderStatus,
+);
+
+
 /*
- * TEMPORARY DEVELOPMENT ROUTE
- *
- * Remove this after Teams delivery
- * is connected to announcements.
+ * Temporary testing endpoint.
  */
 router.post(
     '/test',

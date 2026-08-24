@@ -17,7 +17,7 @@ import {
    StatusBadge,
 } from '../components/badges';
 
-import MicrosoftTeamsConnection from '../components/MicrosoftTeamsConnection.tsx';
+
 
 import { useUser } from '../lib/use-user';
 import { fmtDate } from '../lib/format';
@@ -388,13 +388,6 @@ export default function WebDashboard() {
             ================================= */}
 
             <div className="space-y-4">
-
-
-               {/* --------------------------------
-                   MICROSOFT TEAMS CONNECTION
-               -------------------------------- */}
-
-               <MicrosoftTeamsConnection />
 
 
                {/* --------------------------------
