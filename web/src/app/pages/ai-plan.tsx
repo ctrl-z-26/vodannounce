@@ -117,7 +117,7 @@ export default function WebAIPlan() {
    if (!campaign) {
       return (
          <div className="p-5 lg:p-7">
-            <p className="text-sm text-slate-400">Loading campaign...</p>
+            <p className="text-sm text-slate-400">Loading announcement...</p>
          </div>
       );
    }
@@ -162,7 +162,7 @@ export default function WebAIPlan() {
             >
                <div>
                   <p className="text-white/50 text-xs font-bold uppercase tracking-wide mb-1">
-                     Campaign
+                      Announcement
                   </p>
                   <p className="text-white font-bold text-lg">{campaign.title}</p>
                </div>

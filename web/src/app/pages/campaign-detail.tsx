@@ -27,7 +27,7 @@ export default function WebCampaignDetail() {
    if (!campaign) {
       return (
          <div className="p-5 lg:p-7">
-            <p className="text-sm text-slate-400">Loading campaign…</p>
+            <p className="text-sm text-slate-400">Loading announcement…</p>
          </div>
       );
    }
@@ -50,7 +50,7 @@ export default function WebCampaignDetail() {
                </button>
                <div>
                   <h1 className="text-xl font-bold" style={{ color: DARK }}>
-                     Campaign Detail
+                     Announcement Detail
                   </h1>
                   <p className="text-sm text-slate-400 mt-0.5">{campaign.title}</p>
                </div>

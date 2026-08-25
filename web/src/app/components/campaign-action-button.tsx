@@ -51,7 +51,7 @@ export function CampaignActionButton({
             </button>
             <ConfirmDialog
                 open={confirmOpen}
-                title={isDraft ? 'Discard Campaign?' : 'Cancel Scheduled Campaign?'}
+                title={isDraft ? 'Discard Announcement?' : 'Cancel Scheduled Announcement?'}
                 description={
                     isDraft
                         ? 'This will permanently delete this draft and all its data. This action cannot be undone.'
