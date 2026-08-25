@@ -1,4 +1,9 @@
-import type { TargetType, TargetContext } from '@root-shared/types/campaign.js';
+import type {
+    TargetType,
+    TargetContext,
+    TargetingExpression,
+} from '@root-shared/types/campaign.js';
+import { supabase } from '@shared/supabase/supabase.js';
 
 /**
  * Collects target names that do not exist in the provided target context.
@@ -28,4 +33,20 @@ export function findUnknownTargets(
         }
     }
     return [...unknown];
+}
+
+/**
+ * Resolves a DNF targeting expression to a deduplicated set of user IDs.
+ * Delegates the join logic to a Postgres function to avoid N+1 queries.
+ *
+ * @param targeting - DNF expression from the AI analysis.
+ * @returns Deduplicated user IDs matching the targeting expression.
+ */
+export async function resolveAudience(targeting: TargetingExpression): Promise<string[]> {
+    if (targeting.length === 0) return [];
+    const { data, error } = await supabase.rpc('resolve_audience', {
+        targeting,
+    });
+    if (error) throw new Error(`Failed to resolve audience: ${error.message}`);
+    return data ?? [];
 }

@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -242,6 +242,50 @@ export type Database = {
           },
         ]
       }
+      delivery_logs: {
+        Row: {
+          announcement_id: string
+          attempted_at: string
+          channel: Database["public"]["Enums"]["announcement_channel"]
+          completed_at: string | null
+          destination: string
+          error_message: string | null
+          id: string
+          provider_message_id: string | null
+          status: Database["public"]["Enums"]["delivery_status"]
+        }
+        Insert: {
+          announcement_id: string
+          attempted_at?: string
+          channel: Database["public"]["Enums"]["announcement_channel"]
+          completed_at?: string | null
+          destination: string
+          error_message?: string | null
+          id?: string
+          provider_message_id?: string | null
+          status?: Database["public"]["Enums"]["delivery_status"]
+        }
+        Update: {
+          announcement_id?: string
+          attempted_at?: string
+          channel?: Database["public"]["Enums"]["announcement_channel"]
+          completed_at?: string | null
+          destination?: string
+          error_message?: string | null
+          id?: string
+          provider_message_id?: string | null
+          status?: Database["public"]["Enums"]["delivery_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_logs_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       device_tokens: {
         Row: {
           created_at: string
@@ -409,6 +453,44 @@ export type Database = {
         }
         Relationships: []
       }
+      teams_destinations: {
+        Row: {
+          channel_id: string
+          channel_name: string
+          created_at: string
+          group_id: string
+          id: string
+          team_id: string
+          team_name: string
+        }
+        Insert: {
+          channel_id: string
+          channel_name: string
+          created_at?: string
+          group_id: string
+          id?: string
+          team_id: string
+          team_name: string
+        }
+        Update: {
+          channel_id?: string
+          channel_name?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+          team_id?: string
+          team_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_destinations_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: true
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -484,6 +566,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      resolve_audience: { Args: { targeting: Json }; Returns: string[] }
     }
     Enums: {
       announcement_channel: "email" | "teams" | "mobile_push"

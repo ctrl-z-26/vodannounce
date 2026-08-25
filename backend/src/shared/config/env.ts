@@ -8,7 +8,7 @@ export const envSchema = z.object({
         .transform((val) => parseInt(val, 10)),
 
     GEMINI_API_KEY: z.string().min(1, 'Google AI Studio API key is required'),
-    GEMINI_MODEL: z.string().default('gemini-2.5-flash'),
+    GEMINI_MODEL: z.string().default('gemini-3.5-flash-lite'),
 
     SUPABASE_URL: z.url('Invalid Supabase URL format'),
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'Supabase service role key is required'),
@@ -27,6 +27,38 @@ export const envSchema = z.object({
                 return z.NEVER;
             }
         }),
+
+    AZURE_TENANT_ID: z
+        .string()
+        .min(1, 'Azure Tenant ID is required'),
+
+    AZURE_CLIENT_ID: z
+        .string()
+        .min(1, 'Azure Client ID is required'),
+
+    AZURE_CLIENT_SECRET: z
+        .string()
+        .min(1, 'Azure Client Secret is required'),
+
+    TEAMS_TEST_TEAM_ID: z
+        .string()
+        .min(1, 'Teams test Team ID is required'),
+
+    TEAMS_TEST_CHANNEL_ID: z
+        .string()
+        .min(1, 'Teams test Channel ID is required'),
+    TEAMS_SENDER_EMAIL: z
+        .string()
+        .email('Teams sender email must be valid'),
+
+    TEAMS_OAUTH_REDIRECT_URI: z
+        .string()
+        .url('Teams OAuth redirect URI must be valid'),
+
+    WEB_APP_URL: z
+        .string()
+        .url('Web app URL must be valid'),
+
 });
 
 const envParse = envSchema.safeParse(process.env);

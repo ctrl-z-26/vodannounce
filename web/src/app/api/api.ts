@@ -107,3 +107,38 @@ export async function getTargetContext(): Promise<TargetContext> {
     const res = await api.get<TargetContext>('/campaigns/target-context');
     return res.data;
 }
+
+export async function sendTeamsTestMessage(
+    microsoftAccessToken: string,
+) {
+
+    const response = await fetch(
+        'http://localhost:3000/api/teams/test',
+        {
+            method: 'POST',
+
+            headers: {
+                Authorization:
+                    `Bearer ${microsoftAccessToken}`,
+
+                'Content-Type':
+                    'application/json',
+            },
+        },
+    );
+
+
+    const data =
+        await response.json();
+
+
+    if (!response.ok) {
+        throw new Error(
+            data.error ||
+            'Teams delivery failed',
+        );
+    }
+
+
+    return data;
+}

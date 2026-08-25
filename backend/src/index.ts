@@ -5,7 +5,7 @@ import cors from 'cors';
 import { fcmRoutes } from './modules/fcm/index.js';
 import { campaignsRoutes } from './modules/campaigns/campaigns.routes.js';
 import { errorHandler } from '@shared/middleware/error-handler.js';
-
+import { teamsRoutes } from './modules/teams/index.js';
 const app = express();
 app.use(cors());
 const PORT = env.PORT;
@@ -14,7 +14,7 @@ app.use(express.json());
 
 app.use('/api/fcm', fcmRoutes);
 app.use('/api/campaigns', campaignsRoutes);
-
+app.use('/api/teams', teamsRoutes);
 app.get('/', (req: Request, res: Response) => {
     res.send({ message: 'Hello from TypeScript and Express!' });
 });
