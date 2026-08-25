@@ -7,6 +7,7 @@ import {
 } from "@ionic/react";
 
 import { useEffect, useState } from "react";
+import { useHistory } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 import {
@@ -53,6 +54,7 @@ const priorityConfig: Record<
 };
 
 const Home: React.FC = () => {
+  const history = useHistory();
   const [user, setUser] = useState<User | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
@@ -171,6 +173,7 @@ const Home: React.FC = () => {
   const handleSignOut = async () => {
     try {
       await signOut();
+      history.push("/");
     } catch (error) {
       console.error("Sign out failed:", error);
     }
