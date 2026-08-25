@@ -16,12 +16,11 @@
   margin-bottom: 32px;
 }
 
-.login-logo-ring {
-  width: 64px;
+.login-logo-img {
   height: 64px;
-  border-radius: 50%;
-  border: 8px solid #e60000;
-  margin: 0 auto 16px;
+  width: auto;
+  display: block;
+  margin: 0 auto;
 }
 
 .login-title {
