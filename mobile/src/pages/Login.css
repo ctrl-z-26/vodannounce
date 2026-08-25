@@ -1,5 +1,5 @@
 .login-content {
-  --background: #1a1a1a;
+  --background: #e60000;
 }
 
 .login-container {
@@ -9,6 +9,8 @@
   padding: 60px 24px 24px;
   max-width: 420px;
   margin: 0 auto;
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
 .login-brand {
@@ -31,7 +33,7 @@
 }
 
 .login-subtitle {
-  color: #8a9bb0;
+  color: rgba(255, 255, 255, 0.6);
   font-size: 12px;
   letter-spacing: 1px;
   margin: 0;
@@ -59,13 +61,25 @@
 }
 
 .login-footer {
-  color: #6a7a8a;
+  color: rgba(255, 255, 255, 0.6);
   font-size: 11px;
   text-align: center;
   margin-top: 20px;
 }
 
 .login-footer a {
-  color: #e60000;
-  text-decoration: none;
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: underline;
+}
+
+.login-slogan {
+  text-align: center;
+  margin-top: auto;
+  padding-bottom: 16px;
+}
+
+.login-slogan p {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  margin: 0;
 }

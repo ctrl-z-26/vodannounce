@@ -145,17 +145,19 @@ const Home: React.FC = () => {
     }
   };
 
-  // Derive a display name from the email prefix, e.g. "nour.ihab@..." -> "Nour"
-  const displayName = user?.email
-    ? user.email
-        .split("@")[0]
-        .split(".")[0]
-        .replace(/^\w/, (c) => c.toUpperCase())
-    : "User";
+  // Derive a display name: prefer Google OAuth full_name, fall back to email prefix
+  const displayName =
+    user?.user_metadata?.full_name ||
+    (user?.email
+      ? user.email
+          .split("@")[0]
+          .split(".")[0]
+          .replace(/^\w/, (c) => c.toUpperCase())
+      : "User");
 
   return (
     <IonPage>
-      <IonHeader className="home-header">
+      <IonHeader className="home-header gradient-animated">
         <div className="home-appbar">
           <div className="home-brand">
             <img
