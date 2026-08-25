@@ -1,5 +1,5 @@
 import { ConfidentialClientApplication } from '@azure/msal-node';
-import { supabase } from '../../shared/supabase/client'; // TODO: confirm actual import path for your typed client
+//import { supabase } from '../../shared/supabase/client'; // TODO: confirm actual import path for your typed client
 
 const msalConfig = {
   auth: {
@@ -103,15 +103,12 @@ interface LogDeliveryParams {
  * this uses reasonable guesses (recipient, status, error_message, sent_at).
  */
 async function logDelivery({ params, status, error }: LogDeliveryParams): Promise<void> {
-  const { error: dbError } = await supabase.from('delivery_logs').insert({
+  // TODO: swap for real delivery_logs insert once the table exists in database.types.ts
+  console.log('[delivery_log]', {
     recipient: params.toRecipients.join(', '),
     channel: 'email',
     status,
     error_message: error ?? null,
     sent_at: new Date().toISOString(),
   });
-
-  if (dbError) {
-    console.error('Failed to write delivery log:', dbError);
-  }
 }
