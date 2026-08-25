@@ -17,7 +17,10 @@ export interface TeamsMessageResult {
     webUrl?: string;
 }
 
-
+export type TeamsMessageImportance =
+    | 'normal'
+    | 'high'
+    | 'urgent';
 /*
  * ------------------------------------------------
  * RAW MICROSOFT GRAPH SEND
@@ -32,6 +35,7 @@ async function sendTeamsGraphMessage(
     teamId: string,
     channelId: string,
     htmlContent: string,
+    importance: TeamsMessageImportance = 'normal',
 ): Promise<TeamsMessageResult> {
 
     const url =
@@ -61,6 +65,8 @@ async function sendTeamsGraphMessage(
                 },
 
                 body: JSON.stringify({
+                    importance,
+
                     body: {
                         contentType: 'html',
                         content: htmlContent,
@@ -126,6 +132,7 @@ export async function sendTeamsChannelMessage(
     teamId: string,
     channelId: string,
     htmlContent: string,
+    importance: TeamsMessageImportance = 'normal',
 ): Promise<TeamsMessageResult> {
 
     const destination =
@@ -164,6 +171,7 @@ export async function sendTeamsChannelMessage(
                 teamId,
                 channelId,
                 htmlContent,
+                importance,
             );
 
 
@@ -253,4 +261,53 @@ export async function sendTestTeamsMessage():
             </p>
         `,
     );
+}
+
+export interface TeamsChannel {
+    id: string;
+    displayName: string;
+    description?: string | null;
+}
+
+
+export async function listTeamChannels(
+    teamId: string,
+): Promise<TeamsChannel[]> {
+
+    const accessToken =
+        await getDedicatedTeamsAccessToken();
+
+
+    const url =
+        `https://graph.microsoft.com/v1.0/teams/` +
+        `${encodeURIComponent(teamId)}/channels`;
+
+
+    const response =
+        await fetch(url, {
+            headers: {
+                Authorization:
+                    `Bearer ${accessToken}`,
+            },
+        });
+
+
+    const responseText =
+        await response.text();
+
+
+    if (!response.ok) {
+        throw new Error(
+            `Microsoft Graph ${response.status}: ${responseText}`,
+        );
+    }
+
+
+    const result =
+        JSON.parse(responseText) as {
+            value: TeamsChannel[];
+        };
+
+
+    return result.value;
 }

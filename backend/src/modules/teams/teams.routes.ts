@@ -7,6 +7,7 @@ import {
     handleTeamsOAuthConnect,
     handleTeamsSenderStatus,
     handleTestTeamsMessage,
+    handleListTeamChannels,
 } from './teams.controller.js';
 
 
@@ -40,6 +41,10 @@ router.post(
     handleTestTeamsMessage,
 );
 
+router.get(
+    '/channels/:teamId',
+    handleListTeamChannels,
+);
 
 export const teamsRoutes =
     router;

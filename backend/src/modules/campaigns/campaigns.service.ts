@@ -1,3 +1,13 @@
+import { env } from '@shared/config/env.js';
+
+import {
+    resolveTeamsDestinations,
+} from '../teams/teams-destinations.service.js';
+
+import {
+    sendTeamsChannelMessage,
+} from '../teams/teams.service.js';
+
 import { supabase } from '@shared/supabase/supabase.js';
 import type { Database } from '@shared/supabase/database.types.js';
 import type {
@@ -372,7 +382,65 @@ export async function dispatchCampaign(
     }
 
     // TODO: MS Graph Email via Outlook (VOIS-46)
-    // TODO: MS Graph Teams message (VOIS-45)
+
+    if (channels.includes('teams')) {
+
+        if (!campaign.teams_message) {
+            throw new Error(
+                'Teams is selected but the campaign has no Teams message',
+            );
+        }
+
+
+        /*
+         * Convert the AI-generated business targets
+         * into Microsoft Teams destinations.
+         *
+         * Example:
+         *
+         * HR
+         *   ↓
+         * HR Team / Announcments
+         *
+         * Full Stack Guild
+         *   ↓
+         * FULL STACK Team / Announcments
+         */
+
+        const destinations =
+            await resolveTeamsDestinations(
+                targeting,
+            );
+
+
+        if (destinations.length === 0) {
+            throw new Error(
+                'Teams is selected but no Teams destination is configured for the campaign targets',
+            );
+        }
+        const teamsImportance =
+            campaign.priority === 'critical'
+                ? 'urgent'
+                : campaign.priority === 'important'
+                    ? 'high'
+                    : 'normal';
+        /*
+         * A campaign may target more than one
+         * business group, so send to every
+         * resolved Teams destination.
+         */
+
+        for (const destination of destinations) {
+
+            await sendTeamsChannelMessage(
+                campaign.id,
+                destination.teamId,
+                destination.channelId,
+                campaign.teams_message,
+                teamsImportance,
+            );
+        }
+    }
 
     // 3. Update recipient statuses
     const failedArray = [...failedUserIds];
@@ -480,11 +548,11 @@ export async function approveCampaign(id: string, userId: string): Promise<Campa
         }
 
         const scheduledLog: Database['public']['Tables']['announcement_logs']['Insert'] =
-            {
-                announcement_id: id,
-                action: 'scheduled',
-                user_id: userId,
-            };
+        {
+            announcement_id: id,
+            action: 'scheduled',
+            user_id: userId,
+        };
         const { error: schedLogError } = await supabase
             .from('announcement_logs')
             .insert(scheduledLog);

@@ -453,6 +453,44 @@ export type Database = {
         }
         Relationships: []
       }
+      teams_destinations: {
+        Row: {
+          channel_id: string
+          channel_name: string
+          created_at: string
+          group_id: string
+          id: string
+          team_id: string
+          team_name: string
+        }
+        Insert: {
+          channel_id: string
+          channel_name: string
+          created_at?: string
+          group_id: string
+          id?: string
+          team_id: string
+          team_name: string
+        }
+        Update: {
+          channel_id?: string
+          channel_name?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+          team_id?: string
+          team_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_destinations_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: true
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

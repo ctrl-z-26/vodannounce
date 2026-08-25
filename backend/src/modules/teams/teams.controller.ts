@@ -10,9 +10,9 @@ import {
 } from './teams.auth.js';
 
 import {
+    listTeamChannels,
     sendTestTeamsMessage,
 } from './teams.service.js';
-
 
 /*
  * ------------------------------------------------
@@ -257,4 +257,44 @@ export async function handleTestTeamsMessage(
 
     }
 
+}
+
+export async function handleListTeamChannels(
+    req: Request,
+    res: Response,
+): Promise<void> {
+
+    const teamId = req.params.teamId;
+
+    if (typeof teamId !== 'string') {
+        res.status(400).json({
+            success: false,
+            error: 'teamId is required',
+        });
+
+        return;
+    }
+
+    try {
+
+        const channels =
+            await listTeamChannels(teamId);
+
+        res.status(200).json({
+            success: true,
+            channels,
+        });
+
+    } catch (error) {
+
+        const message =
+            error instanceof Error
+                ? error.message
+                : String(error);
+
+        res.status(500).json({
+            success: false,
+            error: message,
+        });
+    }
 }

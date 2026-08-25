@@ -10,6 +10,7 @@ import { env } from '@shared/config/env.js';
 
 const graphScopes = [
     'ChannelMessage.Send',
+    'Channel.ReadBasic.All',
 ];
 
 
