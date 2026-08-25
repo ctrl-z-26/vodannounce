@@ -62,6 +62,7 @@ Determine the audience from the announcement's NATURE, not from explicit group n
 Common scenarios:
 - Physical issues (fire, network down, no place to reserve) → the location plus security team and facilities.
 - Cyber security attacks → guilds and the cyber security team.
+- Phishing emails (received or clicked) → guilds, market groups, and the cyber security team. For phishing announcements, append a distinct section at the end of the email body instructing recipients who received or clicked the phishing email to report immediately to csoc@vodafone.com. Use a clear heading like "⚠ Phishing Report Required" and keep the instruction concise.
 - Global incidents (e.g., GitHub down) → guilds and market groups.
 
 Reference email format (use for tone/structure only, do not overfit to this example):
