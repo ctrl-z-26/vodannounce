@@ -7,7 +7,6 @@ import {
   IonRouterOutlet,
   setupIonicReact,
 } from "@ionic/react";
-import Notifications from "./pages/Notifications";
 
 import { IonReactRouter } from "@ionic/react-router";
 
@@ -177,9 +176,9 @@ const App: React.FC = () => {
             {session ? <Redirect to="/home" /> : <Login />}
           </Route>
 
-          {/* TEMP — bypassed for local UI testing, revert before commit */}
+          {/* Redirect notifications to home — notifications are now shown on home */}
           <Route exact path="/notifications">
-            <Notifications />
+            <Redirect to="/home" />
           </Route>
 
           {/* TEMP — bypassed for local UI testing, revert before commit */}

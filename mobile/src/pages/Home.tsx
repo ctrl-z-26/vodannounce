@@ -3,39 +3,62 @@ import {
   IonHeader,
   IonPage,
   IonIcon,
-  IonBadge,
   IonButton,
 } from "@ionic/react";
 
 import { useEffect, useState } from "react";
-import { useHistory } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 import {
-  notificationsOutline,
+  logOutOutline,
   alertCircle,
-  chevronForward,
+  warningOutline,
+  informationCircleOutline,
 } from "ionicons/icons";
 
 import type { User } from "@supabase/supabase-js";
 
 import { supabase } from "../lib/supabase";
-import {
-  registerDevice,
-  sendTestNotification,
-} from "../services/device.service";
+import { registerDevice } from "../services/device.service";
 import { signOut } from "../services/auth.service";
+import {
+  fetchNotifications,
+  markAsRead,
+  type Notification,
+} from "../services/announcement.service";
 
 import "./Home.css";
 
+type Filter = "all" | "unread" | "read";
+
+const priorityConfig: Record<
+  string,
+  { icon: string; label: string; className: string }
+> = {
+  critical: {
+    icon: alertCircle,
+    label: "Critical",
+    className: "badge-critical",
+  },
+  important: {
+    icon: warningOutline,
+    label: "Important",
+    className: "badge-important",
+  },
+  normal: {
+    icon: informationCircleOutline,
+    label: "Normal",
+    className: "badge-normal",
+  },
+};
+
 const Home: React.FC = () => {
-  const history = useHistory();
-
   const [user, setUser] = useState<User | null>(null);
-  const [status, setStatus] = useState("Preparing notifications...");
-  const [token, setToken] = useState("");
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [filter, setFilter] = useState<Filter>("all");
+  const [loading, setLoading] = useState(true);
 
-  // --- unchanged: load current user ---
+  // Load current user
   useEffect(() => {
     const loadUser = async () => {
       const {
@@ -51,74 +74,65 @@ const Home: React.FC = () => {
     loadUser();
   }, []);
 
-  // --- unchanged: automatic push notification setup ---
+  // Fetch notifications
   useEffect(() => {
-    if (!Capacitor.isNativePlatform()) {
-      setStatus("Push notifications are available on the mobile app.");
-      return;
-    }
+    const load = async () => {
+      try {
+        const data = await fetchNotifications();
+        setNotifications(data);
+      } catch (err) {
+        console.error("Failed to load notifications:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  // Push notification setup (kept for FCM registration)
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
 
     let active = true;
 
-    const setupPushNotifications = async () => {
+    const setupPush = async () => {
       await PushNotifications.addListener("registration", async (result) => {
-        console.log("FCM token:", result.value);
         if (!active) return;
-        setToken(result.value);
-
         try {
           await registerDevice(result.value);
-          if (active) setStatus("Notifications are enabled.");
-        } catch (error) {
-          console.error("Device registration failed:", error);
-          if (active)
-            setStatus(
-              "Notification token generated, but device registration failed.",
-            );
+        } catch (err) {
+          console.error("Device registration failed:", err);
         }
       });
 
       await PushNotifications.addListener("registrationError", (error) => {
         console.error("FCM registration error:", error);
-        if (active) setStatus("Notification registration failed.");
       });
 
       await PushNotifications.addListener(
         "pushNotificationReceived",
-        (notification) => {
-          console.log("Push notification received:", notification);
-        },
+        () => {},
       );
 
       await PushNotifications.addListener(
         "pushNotificationActionPerformed",
-        (action) => {
-          console.log("Notification opened:", action.notification);
-        },
+        () => {},
       );
 
       try {
         let permission = await PushNotifications.checkPermissions();
-        console.log("Notification permission:", permission);
-
         if (permission.receive === "prompt") {
           permission = await PushNotifications.requestPermissions();
         }
-
-        if (permission.receive !== "granted") {
-          if (active) setStatus("Notifications are disabled.");
-          return;
+        if (permission.receive === "granted") {
+          await PushNotifications.register();
         }
-
-        if (active) setStatus("Registering device for notifications...");
-        await PushNotifications.register();
-      } catch (error) {
-        console.error("Automatic push setup failed:", error);
-        if (active) setStatus("Could not configure notifications.");
+      } catch (err) {
+        console.error("Push setup failed:", err);
       }
     };
 
-    setupPushNotifications();
+    setupPush();
 
     return () => {
       active = false;
@@ -126,14 +140,31 @@ const Home: React.FC = () => {
     };
   }, []);
 
-  const testNotification = async () => {
+  const unreadCount = notifications.filter((n) => !n.readAt).length;
+
+  const filtered = notifications.filter((n) => {
+    if (filter === "unread") return !n.readAt;
+    if (filter === "read") return !!n.readAt;
+    return true;
+  });
+
+  const handleMarkAsRead = async (notification: Notification) => {
+    if (notification.readAt) return;
+
+    // Update locally first
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.recipientId === notification.recipientId
+          ? { ...n, readAt: new Date().toISOString() }
+          : n,
+      ),
+    );
+
+    // Persist to database
     try {
-      setStatus("Sending test notification...");
-      await sendTestNotification();
-      setStatus("Test notification sent successfully.");
-    } catch (error) {
-      console.error("Test notification error:", error);
-      setStatus("Test notification failed.");
+      await markAsRead(notification.recipientId);
+    } catch (err) {
+      console.error("Failed to mark as read:", err);
     }
   };
 
@@ -161,19 +192,19 @@ const Home: React.FC = () => {
         <div className="home-appbar">
           <div className="home-brand">
             <img
-              src="../../public/vodannounce.svg"
+              src="/vodannounce.svg"
               alt="Vodannounce"
               className="home-logo"
             />
             <span className="home-brand-name">Vodannounce</span>
           </div>
-          <div
-            className="home-bell-wrapper"
-            onClick={() => history.push("/notifications")}
+          <IonButton
+            fill="clear"
+            className="home-signout-btn"
+            onClick={handleSignOut}
           >
-            <IonIcon icon={notificationsOutline} className="home-bell" />
-            <IonBadge className="home-bell-badge">1</IonBadge>
-          </div>
+            <IonIcon icon={logOutOutline} slot="icon-only" />
+          </IonButton>
         </div>
         <div className="home-greeting">
           <p className="home-greeting-line">Good afternoon,</p>
@@ -182,45 +213,80 @@ const Home: React.FC = () => {
       </IonHeader>
 
       <IonContent className="home-content">
-        <div
-          className="home-critical-banner"
-          onClick={() => history.push("/notifications")}
-        >
-          <IonIcon icon={alertCircle} className="home-critical-icon" />
-          <div className="home-critical-text">
-            <p className="home-critical-title">
-              Critical Alert Requires Action
-            </p>
-            <p className="home-critical-subtitle">
-              SAP System Maintenance Window
-            </p>
-          </div>
-          <IonIcon icon={chevronForward} className="home-critical-chevron" />
+        <div className="notif-filters">
+          <button
+            className={`notif-filter-btn ${filter === "all" ? "active" : ""}`}
+            onClick={() => setFilter("all")}
+          >
+            All
+          </button>
+          <button
+            className={`notif-filter-btn ${filter === "unread" ? "active" : ""}`}
+            onClick={() => setFilter("unread")}
+          >
+            Unread ({unreadCount})
+          </button>
+          <button
+            className={`notif-filter-btn ${filter === "read" ? "active" : ""}`}
+            onClick={() => setFilter("read")}
+          >
+            Read
+          </button>
         </div>
 
-        {/* Dev-only push notification debug panel — remove once web sender exists */}
-        <div className="home-dev-panel">
-          <p className="home-dev-status">{status}</p>
-          {token && (
-            <IonButton
-              expand="block"
-              color="success"
-              onClick={testNotification}
-              size="small"
-            >
-              Send Test Notification
-            </IonButton>
-          )}
-          <IonButton
-            expand="block"
-            fill="outline"
-            color="medium"
-            onClick={handleSignOut}
-            size="small"
-          >
-            Sign Out
-          </IonButton>
-        </div>
+        {loading ? (
+          <div className="home-empty">Loading notifications...</div>
+        ) : filtered.length === 0 ? (
+          <div className="home-empty">No notifications</div>
+        ) : (
+          <div className="notif-list">
+            {filtered.map((n) => {
+              const cfg = priorityConfig[n.priority] || priorityConfig.normal;
+              const isUnread = !n.readAt;
+              const date = n.createdAt
+                ? new Date(n.createdAt)
+                : null;
+              const dateStr = date
+                ? date.toLocaleDateString("en-GB", {
+                    day: "numeric",
+                    month: "short",
+                  })
+                : "";
+              const timeStr = date
+                ? date.toLocaleTimeString("en-GB", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "";
+
+              return (
+                <div
+                  key={n.recipientId}
+                  className={`notif-card ${n.priority === "critical" ? "notif-card-critical" : ""}`}
+                  onClick={() => handleMarkAsRead(n)}
+                >
+                  <div className="notif-card-top">
+                    <span className={`notif-severity-badge ${cfg.className}`}>
+                      <IonIcon icon={cfg.icon} />
+                      {cfg.label}
+                    </span>
+                    <span className="notif-card-date">
+                      {dateStr} · {timeStr}
+                    </span>
+                  </div>
+                  <p className="notif-card-title">
+                    {n.notificationText || n.title}
+                  </p>
+                  <div className="notif-card-bottom">
+                    <span className={`notif-status-badge ${isUnread ? "unread" : "read"}`}>
+                      {isUnread ? "Unread" : "Read"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </IonContent>
     </IonPage>
   );
