@@ -1,12 +1,13 @@
 .login-content {
-  --background: #1a1a1a;
+  --background: linear-gradient(180deg, #e60000 0%, #c9002b 100%);
 }
 
 .login-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 60px 24px 24px;
+  min-height: 100%;
+  padding: 64px 24px 24px;
   max-width: 420px;
   margin: 0 auto;
 }
@@ -20,27 +21,41 @@
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  border: 8px solid #e60000;
+  border: 8px solid #ffffff;
   margin: 0 auto 16px;
+  position: relative;
+}
+
+.login-logo-ring::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -20px;
+  width: 8px;
+  height: 18px;
+  background: #ffffff;
+  border-radius: 999px;
+  transform: translateX(-50%);
 }
 
 .login-title {
-  color: #fff;
+  color: #ffffff;
   font-size: 24px;
-  font-weight: 700;
-  margin: 0 0 4px;
+  font-weight: 800;
+  margin: 22px 0 4px;
 }
 
 .login-subtitle {
-  color: #8a9bb0;
+  color: rgba(255, 255, 255, 0.86);
   font-size: 12px;
   letter-spacing: 1px;
   margin: 0;
 }
 
 .login-card {
-  background: #fff;
-  border-radius: 16px;
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 16px 36px rgba(102, 0, 0, 0.22);
   padding: 8px 20px 20px;
   width: 100%;
 }
@@ -53,20 +68,30 @@
 }
 
 .login-sso-btn {
-  --border-color: #ddd;
+  --border-color: #dddddd;
   --color: #1a1a1a;
   margin-bottom: 12px;
-  font-weight: 600;
+  font-weight: 700;
+}
+
+.login-error {
+  color: #d40000;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
 }
 
 .login-footer {
-  color: #6a7a8a;
+  color: rgba(255, 255, 255, 0.82);
   font-size: 11px;
+  line-height: 1.5;
   text-align: center;
-  margin-top: 20px;
+  margin-top: auto;
+  padding-top: 22px;
 }
 
 .login-footer a {
-  color: #e60000;
+  color: #ffffff;
+  font-weight: 700;
   text-decoration: none;
 }
