@@ -1,4 +1,5 @@
 import type {
+    Target,
     TargetType,
     TargetContext,
     TargetingExpression,
@@ -33,6 +34,43 @@ export function findUnknownTargets(
         }
     }
     return [...unknown];
+}
+
+/**
+ * Expands a standalone branch/location target into the groups mapped to that
+ * branch. This keeps locations such as Dallah Maadi and Smart Village out of
+ * the visible audience chips while preserving the actual recipient audience.
+ */
+export function expandStandaloneLocationTargets(
+    targeting: TargetingExpression,
+    groupsByLocation: Map<string, string[]>,
+): TargetingExpression {
+    const expanded: TargetingExpression = [];
+    const seen = new Set<string>();
+
+    const addCell = (cell: Target[]) => {
+        const key = cell.map((target) => `${target.type}:${target.name}`).join('|');
+        if (seen.has(key)) return;
+        expanded.push(cell);
+        seen.add(key);
+    };
+
+    for (const cell of targeting) {
+        const onlyTarget = cell[0];
+        if (cell.length === 1 && onlyTarget?.type === 'location') {
+            const groupNames = groupsByLocation.get(onlyTarget.name) ?? [];
+            if (groupNames.length > 0) {
+                for (const groupName of groupNames) {
+                    addCell([{ type: 'group', name: groupName }]);
+                }
+                continue;
+            }
+        }
+
+        addCell(cell);
+    }
+
+    return expanded;
 }
 
 /**

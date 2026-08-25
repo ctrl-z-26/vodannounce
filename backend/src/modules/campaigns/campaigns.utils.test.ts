@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { findUnknownTargets } from './campaigns.utils.js';
+import { findUnknownTargets, expandStandaloneLocationTargets } from './campaigns.utils.js';
 import type { Target, TargetContext } from '@root-shared/types/campaign.js';
 
 function target(type: Target['type'], name: string): Target {
@@ -46,5 +46,40 @@ describe('findUnknownTargets', () => {
 
     it('returns empty for empty targets', () => {
         expect(findUnknownTargets([], targetContext)).toEqual([]);
+    });
+});
+describe('expandStandaloneLocationTargets', () => {
+    const groupsByLocation = new Map<string, string[]>([
+        ['Dallah Maadi', ['Full Stack Guild', 'Backend Guild']],
+        ['Smart Village', ['Frontend Guild', 'Mobile Guild']],
+    ]);
+
+    it('replaces a standalone Dallah Maadi location with its groups', () => {
+        expect(
+            expandStandaloneLocationTargets(
+                [[target('location', 'Dallah Maadi')]],
+                groupsByLocation,
+            ),
+        ).toEqual([
+            [target('group', 'Full Stack Guild')],
+            [target('group', 'Backend Guild')],
+        ]);
+    });
+
+    it('replaces a standalone Smart Village location with its groups', () => {
+        expect(
+            expandStandaloneLocationTargets(
+                [[target('location', 'Smart Village')]],
+                groupsByLocation,
+            ),
+        ).toEqual([
+            [target('group', 'Frontend Guild')],
+            [target('group', 'Mobile Guild')],
+        ]);
+    });
+
+    it('keeps non-location cells unchanged', () => {
+        const targeting = [[target('group', 'Security')]];
+        expect(expandStandaloneLocationTargets(targeting, groupsByLocation)).toEqual(targeting);
     });
 });

@@ -20,12 +20,97 @@ import type {
 } from '@root-shared/types/campaign.js';
 import { analyzeAnnouncement, repairTargets } from '../llm/index.js';
 import type { CampaignAnalysis } from '../llm/index.js';
-import { findUnknownTargets, resolveAudience } from './campaigns.utils.js';
+import {
+    expandStandaloneLocationTargets,
+    findUnknownTargets,
+    resolveAudience,
+} from './campaigns.utils.js';
 import { pushToUsers } from '../fcm/index.js';
 import { BadRequestError, NotFoundError } from '@shared/error/index.js';
 
 /** Number of AI target-repair attempts allowed after the initial analysis. */
 const MAX_REPAIRS = 2;
+
+type GroupRow = Pick<Database['public']['Tables']['groups']['Row'], 'id' | 'name'>;
+type LocationRow = Pick<Database['public']['Tables']['locations']['Row'], 'id' | 'name'>;
+type GroupLocationRow = Database['public']['Tables']['group_locations']['Row'];
+
+const PREFERRED_BRANCH_GROUP_ORDER = [
+    'Full Stack Guild',
+    'Backend Guild',
+    'Frontend Guild',
+    'Mobile Guild',
+    'MLOps Guild',
+    'AIOps Guild',
+    'Data Analytics Guild',
+    'Security',
+    'Facilities',
+    'Cyber Security',
+    'HR',
+    'Management',
+];
+
+function sortBranchGroupNames(groupNames: string[]): string[] {
+    const preferredIndex = new Map(
+        PREFERRED_BRANCH_GROUP_ORDER.map((name, index) => [name, index]),
+    );
+
+    return [...new Set(groupNames)].sort((a, b) => {
+        const aIndex = preferredIndex.get(a) ?? Number.MAX_SAFE_INTEGER;
+        const bIndex = preferredIndex.get(b) ?? Number.MAX_SAFE_INTEGER;
+        if (aIndex !== bIndex) return aIndex - bIndex;
+        return a.localeCompare(b);
+    });
+}
+
+async function expandBranchTargetsForVisibleAudience(
+    targeting: TargetingExpression,
+): Promise<TargetingExpression> {
+    const [groupsResult, locationsResult, groupLocationsResult] = await Promise.all([
+        supabase.from('groups').select('id, name'),
+        supabase.from('locations').select('id, name'),
+        supabase.from('group_locations').select('*'),
+    ]);
+
+    if (groupsResult.error) {
+        throw new Error(`Failed to fetch groups: ${groupsResult.error.message}`);
+    }
+    if (locationsResult.error) {
+        throw new Error(`Failed to fetch locations: ${locationsResult.error.message}`);
+    }
+    if (groupLocationsResult.error) {
+        throw new Error(
+            `Failed to fetch group locations: ${groupLocationsResult.error.message}`,
+        );
+    }
+
+    const groupNameById = new Map(
+        ((groupsResult.data ?? []) as GroupRow[]).map((group) => [group.id, group.name]),
+    );
+    const locationNameById = new Map(
+        ((locationsResult.data ?? []) as LocationRow[]).map((location) => [
+            location.id,
+            location.name,
+        ]),
+    );
+    const groupsByLocation = new Map<string, string[]>();
+
+    for (const row of (groupLocationsResult.data ?? []) as GroupLocationRow[]) {
+        const locationName = locationNameById.get(row.location_id);
+        const groupName = groupNameById.get(row.group_id);
+        if (!locationName || !groupName) continue;
+
+        const groupNames = groupsByLocation.get(locationName) ?? [];
+        groupNames.push(groupName);
+        groupsByLocation.set(locationName, groupNames);
+    }
+
+    for (const [locationName, groupNames] of groupsByLocation) {
+        groupsByLocation.set(locationName, sortBranchGroupNames(groupNames));
+    }
+
+    return expandStandaloneLocationTargets(targeting, groupsByLocation);
+}
 
 /**
  * Fetches the exact group/location names Gemini may reference as targets.
@@ -93,6 +178,11 @@ export async function analyzeAndCreateDraft(
             `AI produced unknown targets after ${MAX_REPAIRS} repair attempts: ${remaining.join(', ')}`,
         );
     }
+
+    analysis = {
+        ...analysis,
+        targets: await expandBranchTargetsForVisibleAudience(analysis.targets),
+    };
 
     const { targets, ...content } = analysis;
     const draft: Database['public']['Tables']['announcements']['Insert'] = {
