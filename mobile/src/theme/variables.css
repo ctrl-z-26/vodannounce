@@ -1,2 +1,9 @@
 /* For information on how to create your own theme, please refer to:
 http://ionicframework.com/docs/theming/ */
+
+.gradient-animated {
+  background-color: #e60000;
+  background-image:
+    radial-gradient(ellipse at 100% 10%, #5b21b6 0%, transparent 55%),
+    radial-gradient(circle at 10% 100%, #000000 0%, transparent 25%);
+}

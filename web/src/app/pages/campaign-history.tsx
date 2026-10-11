@@ -30,7 +30,7 @@ export default function WebCampaignHistory() {
       <div className="p-5 lg:p-7 space-y-5">
          <div className="flex items-center justify-between flex-wrap gap-3">
             <h1 className="text-xl font-bold" style={{ color: DARK }}>
-               Campaign History
+               Announcement History
             </h1>
             <div className="flex gap-2">
                <button className="flex items-center gap-2 px-3.5 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors">
@@ -43,7 +43,7 @@ export default function WebCampaignHistory() {
          </div>
          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
-               { label: 'Total Campaigns', value: String(campaigns.length), color: DARK },
+               { label: 'Total Announcements', value: String(campaigns.length), color: DARK },
                { label: 'Successful', value: String(sent), color: '#16a34a' },
                { label: 'Scheduled', value: String(scheduled), color: '#2563eb' },
                { label: 'Drafts', value: String(drafts), color: RED },
@@ -64,7 +64,7 @@ export default function WebCampaignHistory() {
             <input
                value={search}
                onChange={(e) => setSearch(e.target.value)}
-               placeholder="Search campaigns by name..."
+               placeholder="Search announcements by name..."
                className="flex-1 bg-transparent text-sm placeholder-slate-400 outline-none"
                style={{ color: DARK }}
             />
@@ -75,7 +75,7 @@ export default function WebCampaignHistory() {
                   <thead>
                      <tr className="bg-slate-50">
                         {[
-                           'Campaign Name',
+                           'Announcement Name',
                            'Priority',
                            'Created',
                            'Status',
@@ -135,7 +135,7 @@ export default function WebCampaignHistory() {
             {filtered.length === 0 && (
                <div className="py-12 text-center">
                   <p className="text-slate-400 text-sm">
-                     No campaigns found matching &quot;{search}&quot;
+                      No announcements found matching &quot;{search}&quot;
                   </p>
                </div>
             )}

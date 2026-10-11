@@ -5,8 +5,8 @@ import { BG } from '../lib/brand';
 
 const NAV_ITEMS = [
    { path: '/', label: 'Dashboard', icon: Home },
-   { path: '/campaign/new', label: 'Create Campaign', icon: Plus },
-   { path: '/history', label: 'Campaign History', icon: Archive },
+   { path: '/campaign/new', label: 'Create Announcement', icon: Plus },
+   { path: '/history', label: 'Announcement History', icon: Archive },
 ];
 
 /** Resolves which sidebar item is active for a given pathname. */

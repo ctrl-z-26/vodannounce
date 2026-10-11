@@ -26,7 +26,7 @@ export default function WebDashboard() {
 
    const kpis = [
       {
-         label: 'Active Campaigns',
+         label: 'Active Announcements',
          value: String(scheduled),
          sub: 'Scheduled for delivery',
          icon: Activity,
@@ -44,7 +44,7 @@ export default function WebDashboard() {
       {
          label: 'Completed',
          value: String(sent),
-         sub: 'Delivered campaigns',
+         sub: 'Delivered announcements',
          icon: CheckCircle,
          color: 'text-green-600',
          bg: 'bg-green-50',
@@ -52,7 +52,7 @@ export default function WebDashboard() {
       {
          label: 'Cancelled',
          value: String(cancelled),
-         sub: 'Withdrawn campaigns',
+         sub: 'Withdrawn announcements',
          icon: XCircle,
          color: 'text-slate-600',
          bg: 'bg-slate-100',
@@ -79,7 +79,7 @@ export default function WebDashboard() {
                onClick={() => navigate('/campaign/new')}
                className="btn-primary flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm"
             >
-               <Plus size={16} /> New Campaign
+               <Plus size={16} /> New Announcement
             </button>
          </div>
 
@@ -113,7 +113,7 @@ export default function WebDashboard() {
             <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
                   <h2 className="font-bold" style={{ color: DARK }}>
-                     Active Campaigns
+                      Active Announcements
                   </h2>
                   <button
                      onClick={() => navigate('/history')}
@@ -127,7 +127,7 @@ export default function WebDashboard() {
                   <table className="w-full">
                      <thead>
                         <tr className="bg-slate-50">
-                           {['Campaign', 'Priority', 'Date', 'Status'].map((h) => (
+                            {['Announcement', 'Priority', 'Date', 'Status'].map((h) => (
                               <th
                                  key={h}
                                  className="px-4 py-2.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wide whitespace-nowrap"
@@ -173,7 +173,7 @@ export default function WebDashboard() {
                                  colSpan={4}
                                  className="px-4 py-8 text-center text-sm text-slate-400"
                               >
-                                 No campaigns yet
+                                 No announcements yet
                               </td>
                            </tr>
                         )}
@@ -230,7 +230,7 @@ export default function WebDashboard() {
                   {drafts === 0 && (
                      <div className="px-5 py-8 text-center">
                         <p className="text-sm text-slate-400">
-                           No campaigns awaiting approval
+                           No announcements awaiting approval
                         </p>
                      </div>
                   )}

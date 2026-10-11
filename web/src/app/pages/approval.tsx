@@ -77,7 +77,7 @@ export default function WebApproval() {
 
             {!campaign ? (
                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-                  <p className="text-sm text-slate-400">Loading campaign…</p>
+                   <p className="text-sm text-slate-400">Loading announcement…</p>
                </div>
             ) : (
                <>
@@ -215,7 +215,7 @@ export default function WebApproval() {
                         disabled={!checked || sending || campaign.status !== 'draft'}
                         title={
                            campaign.status !== 'draft'
-                              ? 'Only draft campaigns can be approved'
+                              ? 'Only draft announcements can be approved'
                               : undefined
                         }
                         className="btn-primary flex-1 flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed"
